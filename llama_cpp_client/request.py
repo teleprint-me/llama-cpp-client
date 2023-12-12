@@ -7,6 +7,13 @@ from typing import Any, Dict, Generator
 import requests
 
 
+class StreamNotAllowedError(Exception):
+    def __init__(
+        self, message="Streaming not allowed for this request. Set 'stream' to False."
+    ):
+        super().__init__(message)
+
+
 class LlamaCppRequest:
     def __init__(
         self,
@@ -43,6 +50,11 @@ class LlamaCppRequest:
         :param params: Optional query parameters to include in the request.
         :return: The parsed JSON response.
         """
+        # NOTE: Unsure of whether to use params or data here.
+        # Intuition is telling me it should probably be data.
+        if params.get("stream", False):
+            raise StreamNotAllowedError()
+
         url = f"{self.base_url}{endpoint}"
         response = requests.get(url, params=params, headers=self.headers)
         return self._handle_response(response)
@@ -55,6 +67,9 @@ class LlamaCppRequest:
         :param data: The data to include in the request body.
         :return: The parsed JSON response.
         """
+        if data.get("stream", False):
+            raise StreamNotAllowedError()
+
         url = f"{self.base_url}{endpoint}"
         response = requests.post(url, json=data, headers=self.headers)
         return self._handle_response(response)
@@ -69,6 +84,9 @@ class LlamaCppRequest:
         :param data: Data to be sent with the request.
         :return: A generator of response data.
         """
+        if not data.get("stream", True):
+            raise ValueError("Stream must be set to True for streaming requests.")
+
         url = f"{self.base_url}{endpoint}"
         response = requests.post(url, json=data, headers=self.headers, stream=True)
 
