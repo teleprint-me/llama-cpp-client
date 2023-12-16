@@ -1,8 +1,7 @@
 """
 llama_cpp_client/format.py
 """
-import dataclasses
-from typing import Any, Callable, Dict, List, Optional, Protocol, Union
+from typing import Any, Callable, Dict, List, Optional, Protocol
 
 import jinja2
 from gguf import GGUFReader, Keys
@@ -26,12 +25,6 @@ def get_prompt_sequence(messages: List[ChatMessage]) -> str:
     return "".join([msg["content"] for msg in messages])
 
 
-@dataclasses.dataclass
-class ChatFormatterResponse:
-    prompt: str
-    stop: Optional[Union[str, List[str]]] = None
-
-
 # Base Chat Formatter Protocol
 class ChatFormatterInterface(Protocol):
     def __init__(self, template: Optional[object] = None):
@@ -41,7 +34,7 @@ class ChatFormatterInterface(Protocol):
         self,
         messages: List[ChatMessage],
         **kwargs,
-    ) -> ChatFormatterResponse:
+    ) -> str:
         ...
 
     @property
@@ -80,9 +73,8 @@ class AutoChatFormatter(ChatFormatterInterface):
         self,
         messages: List[ChatMessage],
         **kwargs: Any,
-    ) -> ChatFormatterResponse:
-        formatted_sequence = self._environment.render(messages=messages, **kwargs)
-        return ChatFormatterResponse(prompt=formatted_sequence)
+    ) -> str:
+        return self._environment.render(messages=messages, **kwargs)
 
     @property
     def template(self) -> str:
