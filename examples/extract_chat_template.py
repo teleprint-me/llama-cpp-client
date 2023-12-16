@@ -1,5 +1,5 @@
 """
-examples/extract_chat_template.py: 
+examples/extract_chat_template.py:
     Example file to experiment with extracting the chat template from the models metadata.
 """
 from __future__ import annotations
