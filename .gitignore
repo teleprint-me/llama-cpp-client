@@ -1,5 +1,6 @@
 /vendor
 /models
+commit_message_template.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
