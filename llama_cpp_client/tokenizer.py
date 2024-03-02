@@ -2,19 +2,19 @@
 Module: llama_cpp_client.tokenizer
 """
 
-from typing import List
+from typing import List, Optional
 
 from llama_cpp_client.request import LlamaCppRequest
 
 
 class LlamaCppTokenizer:
-    def __init__(self, model_request: LlamaCppRequest):
+    def __init__(self, llama_cpp_request: Optional[LlamaCppRequest] = None):
         """
-        Initializes the LlamaCppTokenizer with the server URL.
+        Initializes the LlamaCppTokenizer with a LlamaCppRequest instance.
 
         :param server_url: The base URL of the server where the tokenize and detokenize endpoints are available.
         """
-        self.model_request = model_request or LlamaCppRequest()
+        self.llama_cpp_request = llama_cpp_request or LlamaCppRequest()
 
     def tokenize(self, text: str) -> List[int]:
         """
@@ -24,8 +24,8 @@ class LlamaCppTokenizer:
         :return: A list of token IDs.
         """
         payload = {"content": text}
-        model_response = self.model_request.post("/tokenize", data=payload)
-        return model_response.get("tokens", [])
+        llama_cpp_response = self.llama_cpp_request.post("/tokenize", data=payload)
+        return llama_cpp_response.get("tokens", [])
 
     def detokenize(self, tokens: List[int]) -> str:
         """
@@ -35,14 +35,14 @@ class LlamaCppTokenizer:
         :return: The detokenized text.
         """
         payload = {"tokens": tokens}
-        response = self.model_request.post("/detokenize", data=payload)
-        return response.get("content", "")
+        llama_cpp_response = self.llama_cpp_request.post("/detokenize", data=payload)
+        return llama_cpp_response.get("content", "")
 
 
 # Example usage:
 if __name__ == "__main__":
-    model_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
-    tokenizer = LlamaCppTokenizer(model_request=model_request)
+    llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
+    tokenizer = LlamaCppTokenizer(llama_cpp_request=llama_cpp_request)
     text = "<|system|>\nMy name is StableLM. I am a helpful assistant.<|endoftext|>\n<|user|>\nHello! My name is Austin! What is your name?<|endoftext|>\n<|assistant|>\n"
     tokens = tokenizer.tokenize(text)
     print(f"Tokens: {tokens}")
