@@ -7,10 +7,10 @@ from typing import List
 from llama_cpp_client.request import LlamaCppRequest
 
 
-class ModelTokenizer:
+class LlamaCppTokenizer:
     def __init__(self, model_request: LlamaCppRequest):
         """
-        Initializes the ModelTokenizer with the server URL.
+        Initializes the LlamaCppTokenizer with the server URL.
 
         :param server_url: The base URL of the server where the tokenize and detokenize endpoints are available.
         """
@@ -42,7 +42,7 @@ class ModelTokenizer:
 # Example usage:
 if __name__ == "__main__":
     model_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
-    tokenizer = ModelTokenizer(model_request=model_request)
+    tokenizer = LlamaCppTokenizer(model_request=model_request)
     text = "<|system|>\nMy name is StableLM. I am a helpful assistant.<|endoftext|>\n<|user|>\nHello! My name is Austin! What is your name?<|endoftext|>\n<|assistant|>\n"
     tokens = tokenizer.tokenize(text)
     print(f"Tokens: {tokens}")
