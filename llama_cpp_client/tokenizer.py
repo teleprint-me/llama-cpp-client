@@ -43,7 +43,7 @@ class ModelTokenizer:
 if __name__ == "__main__":
     model_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
     tokenizer = ModelTokenizer(model_request=model_request)
-    text = "\nMy name is StableLM. I am a helpful assistant.\n\nHello! My name is Austin! What is your name?\n\n"
+    text = "<|system|>\nMy name is StableLM. I am a helpful assistant.<|endoftext|>\n<|user|>\nHello! My name is Austin! What is your name?<|endoftext|>\n<|assistant|>\n"
     tokens = tokenizer.tokenize(text)
     print(f"Tokens: {tokens}")
     detokenized_text = tokenizer.detokenize(tokens)
