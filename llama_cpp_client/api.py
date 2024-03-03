@@ -92,10 +92,13 @@ class LlamaCppAPI:
 
 
 if __name__ == "__main__":
+    import json  # Pretty print server response
     import sys  # Allow streaming to stdout
 
+    from rich import print  # Decorate output
+
     # Create an instance of LlamaCppAPI
-    llama_api = LlamaCppAPI()
+    llama_api = LlamaCppAPI(n_predict=45)
 
     # Example: Get health status of the Llama.cpp server
     health_status = llama_api.health
@@ -103,7 +106,7 @@ if __name__ == "__main__":
 
     # Example: Get slots processing state
     slots_state = llama_api.slots
-    print("Slots State:", slots_state)
+    print("Slots State:", json.dumps(slots_state, indent=2))
 
     # Example: Get model file path for a specific slot
     slot_index = 0
@@ -116,6 +119,8 @@ if __name__ == "__main__":
 
     # Example: Generate prediction given a prompt
     prompt = "Once upon a time"
+    print(prompt, end="")
+
     predictions = llama_api.completion(prompt)
     # Handle the model's generated response
     content = ""
@@ -134,9 +139,13 @@ if __name__ == "__main__":
         {"role": "assistant", "content": "I'm doing well, thank you for asking."},
         {"role": "user", "content": "Can you tell me a joke?"},
     ]
+    for message in messages:
+        print(f'{message["role"]}:', message["content"])
+
     chat_completions = llama_api.chat_completion(messages)
     # Handle the models generated response
     content = ""
+    print("assistant: ", end="")
     for completed in chat_completions:
         if "content" in completed["choices"][0]["delta"]:
             # extract the token from the completed
