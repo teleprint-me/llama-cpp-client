@@ -1,6 +1,7 @@
 """
 Module: llama_cpp_client.request
 """
+
 import json
 from typing import Any, Dict, Generator
 
@@ -94,3 +95,32 @@ class LlamaCppRequest:
             if line:
                 chunk = line[len("data: ") :]
                 yield json.loads(chunk)  # convert extracted chunk to dict
+
+
+if __name__ == "__main__":
+    import sys
+
+    # Initialize the LlamaCppRequest instance
+    llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
+
+    # Define the prompt for the model
+    prompt = "<|system|>\nMy name is StableLM. I am a helpful assistant.<|endoftext|>\n<|user|>\nHello! My name is Han Solo! What is your name?<|endoftext|>\n<|assistant|>\n"
+
+    # Prepare data for streaming request
+    data = {"prompt": prompt, "stream": True}
+
+    # Generate the model's response
+    generator = llama_cpp_request.stream("/completion", data=data)
+
+    # Handle the model's generated response
+    content = ""
+    for response in generator:
+        if "content" in response:
+            token = response["content"]
+            content += token
+            # Print each token to the user
+            print(token, end="")
+            sys.stdout.flush()
+
+    # Add padding to the model's output
+    print()
