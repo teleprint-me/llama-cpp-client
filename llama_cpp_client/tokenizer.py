@@ -39,12 +39,20 @@ class LlamaCppTokenizer:
         return llama_cpp_response.get("content", "")
 
 
-# Example usage:
 if __name__ == "__main__":
+    # Initialize the LlamaCppRequest instance
     llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
+
+    # Initialize the LlamaCppTokenizer instance
     tokenizer = LlamaCppTokenizer(llama_cpp_request=llama_cpp_request)
+
+    # Define the text to tokenize
     text = "<|system|>\nMy name is StableLM. I am a helpful assistant.<|endoftext|>\n<|user|>\nHello! My name is Austin! What is your name?<|endoftext|>\n<|assistant|>\n"
+
+    # Tokenize the text
     tokens = tokenizer.tokenize(text)
     print(f"Tokens: {tokens}")
+
+    # Detokenize the tokens
     detokenized_text = tokenizer.detokenize(tokens)
     print(f"Detokenized Text: {detokenized_text}")
