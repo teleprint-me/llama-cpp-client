@@ -1,4 +1,6 @@
 /vendor
+/llama.cpp
+/local
 /models
 commit_message_template.txt
 
