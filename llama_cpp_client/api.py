@@ -89,3 +89,60 @@ class LlamaCppAPI:
             return self.request.stream(endpoint=endpoint, data=self.data)
         if not self.data.get("stream"):
             return self.request.post(endpoint=endpoint, data=self.data)
+
+
+if __name__ == "__main__":
+    import sys  # Allow streaming to stdout
+
+    # Create an instance of LlamaCppAPI
+    llama_api = LlamaCppAPI()
+
+    # Example: Get health status of the Llama.cpp server
+    health_status = llama_api.health
+    print("Health Status:", health_status)
+
+    # Example: Get slots processing state
+    slots_state = llama_api.slots
+    print("Slots State:", slots_state)
+
+    # Example: Get model file path for a specific slot
+    slot_index = 0
+    model_path = llama_api.get_model(slot=slot_index)
+    print(f"Model Path for Slot {slot_index}: {model_path}")
+
+    # Example: Get prompt for a specific slot
+    prompt = llama_api.get_prompt(slot=slot_index)
+    print(f"Prompt for Slot {slot_index}:", prompt)
+
+    # Example: Generate prediction given a prompt
+    prompt = "Once upon a time"
+    predictions = llama_api.completion(prompt)
+    # Handle the model's generated response
+    content = ""
+    for predicted in predictions:
+        if "content" in predicted:
+            token = predicted["content"]
+            content += token
+            # Print each token to the user
+            print(token, end="")
+            sys.stdout.flush()
+    print()  # Add padding to the model's output
+
+    # Example: Generate chat completion given a sequence of messages
+    messages = [
+        {"role": "user", "content": "Hello! How are you?"},
+        {"role": "assistant", "content": "I'm doing well, thank you for asking."},
+        {"role": "user", "content": "Can you tell me a joke?"},
+    ]
+    chat_completions = llama_api.chat_completion(messages)
+    # Handle the models generated response
+    content = ""
+    for completed in chat_completions:
+        if "content" in completed["choices"][0]["delta"]:
+            # extract the token from the completed
+            token = completed["choices"][0]["delta"]["content"]
+            # append each chunk to the completed
+            content += token
+            print(token, end="")  # print the chunk out to the user
+            sys.stdout.flush()  # flush the output to standard output
+    print()  # add padding to models output
