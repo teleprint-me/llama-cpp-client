@@ -53,7 +53,7 @@ class LlamaCppRequest:
         """
         # NOTE: Unsure of whether to use params or data here.
         # Intuition is telling me it should probably be data.
-        if params.get("stream", False):
+        if params and params.get("stream", False):
             raise StreamNotAllowedError()
 
         url = f"{self.base_url}{endpoint}"
@@ -68,7 +68,7 @@ class LlamaCppRequest:
         :param data: The data to include in the request body.
         :return: The parsed JSON response.
         """
-        if data.get("stream", False):
+        if data and data.get("stream", False):
             raise StreamNotAllowedError()
 
         url = f"{self.base_url}{endpoint}"
