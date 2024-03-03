@@ -34,7 +34,6 @@ class LlamaCppAPI:
         self.history = history or LlamaCppHistory("default")
 
         # set model hyper parameters
-        # Initialize self.data with default values
         self.data = {
             "prompt": "",
             "messages": [],
@@ -49,7 +48,6 @@ class LlamaCppAPI:
             "seed": seed,
             "stream": stream,
             "cache_prompt": cache_prompt,
-            # Add more default parameters here if needed
         }
 
         # Update self.data with any additional parameters provided via kwargs
@@ -64,6 +62,11 @@ class LlamaCppAPI:
         """Get the current slots processing state."""
         return self.request.get("/slots")
 
+    def get_ctx_size(self, slot: int = 0) -> int:
+        """Get the language models max positional embeddings"""
+        # NOTE: Return -1 to indicated an error occurred
+        return self.slots[slot].get("n_ctx", -1)
+
     def get_model(self, slot: int = 0) -> str:
         """Get the language models file path"""
         # NOTE: A slot is allocated to a individual user
@@ -73,7 +76,7 @@ class LlamaCppAPI:
         """Get the language models system prompt"""
         return self.slots[slot].get("prompt", "")
 
-    def completion(self, prompt: str):
+    def completion(self, prompt: str) -> Any:
         """Get a prediction given a prompt"""
         endpoint = "/completion"
         self.data["prompt"] = prompt
@@ -85,7 +88,7 @@ class LlamaCppAPI:
         if not self.data.get("stream"):
             return self.request.post(endpoint=endpoint, data=self.data)
 
-    def chat_completion(self, content: str):
+    def chat_completion(self, content: str) -> Any:
         """Get a OpenAI ChatML compatible prediction given a sequence of messages"""
         endpoint = "/v1/chat/completions"
         message = {"role": "user", "content": content}
