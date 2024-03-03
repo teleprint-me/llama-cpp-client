@@ -1,5 +1,5 @@
 """
-llama_cpp_client/singleton.py
+Module: llama_cpp_client.singleton
 """
 
 

@@ -1,6 +1,7 @@
 """
-llama_cpp_client/format.py
+Module: llama_cpp_client.format.py
 """
+
 from typing import Any, Callable, Dict, List, Optional, Protocol
 
 import jinja2
@@ -27,22 +28,18 @@ def get_prompt_sequence(messages: List[ChatMessage]) -> str:
 
 # Base Chat Formatter Protocol
 class ChatFormatterInterface(Protocol):
-    def __init__(self, template: Optional[object] = None):
-        ...
+    def __init__(self, template: Optional[object] = None): ...
 
     def __call__(
         self,
         messages: List[ChatMessage],
         **kwargs,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @property
-    def template(self) -> str:
-        ...
+    def template(self) -> str: ...
 
-    def get_chat_template(model_file: str) -> str:
-        ...
+    def get_chat_template(model_file: str) -> str: ...
 
 
 class AutoChatFormatter(ChatFormatterInterface):
