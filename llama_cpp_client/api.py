@@ -4,17 +4,13 @@ Module: llama_cpp_client.api
 
 from typing import Any, Dict, List
 
-from llama_cpp_client.history import LlamaCppHistory
 from llama_cpp_client.request import LlamaCppRequest
-from llama_cpp_client.tokenizer import LlamaCppTokenizer
 
 
 class LlamaCppAPI:
     def __init__(
         self,
         request: LlamaCppRequest = None,
-        tokenizer: LlamaCppTokenizer = None,
-        history: LlamaCppHistory = None,
         top_k: int = 50,
         top_p: float = 0.90,
         min_p: float = 0.1,
@@ -30,8 +26,6 @@ class LlamaCppAPI:
     ) -> None:
         # manage llama.cpp client instances
         self.request = request or LlamaCppRequest()
-        self.tokenizer = tokenizer or LlamaCppTokenizer(self.request)
-        self.history = history or LlamaCppHistory("default")
 
         # set model hyper parameters
         self.data = {
@@ -81,21 +75,17 @@ class LlamaCppAPI:
         endpoint = "/completion"
         self.data["prompt"] = prompt
 
-        # TODO: Manage completion history
-
         if self.data.get("stream"):
-            yield self.request.stream(endpoint=endpoint, data=self.data)
+            return self.request.stream(endpoint=endpoint, data=self.data)
         if not self.data.get("stream"):
             return self.request.post(endpoint=endpoint, data=self.data)
 
-    def chat_completion(self, content: str) -> Any:
+    def chat_completion(self, messages: List[Dict[str, str]]) -> Any:
         """Get a OpenAI ChatML compatible prediction given a sequence of messages"""
         endpoint = "/v1/chat/completions"
-        message = {"role": "user", "content": content}
-        self.history.append(message)
-        self.data["messages"] = self.history.messages
+        self.data["messages"] = messages
 
         if self.data.get("stream"):
-            yield self.request.stream(endpoint=endpoint, data=self.data)
+            return self.request.stream(endpoint=endpoint, data=self.data)
         if not self.data.get("stream"):
             return self.request.post(endpoint=endpoint, data=self.data)
