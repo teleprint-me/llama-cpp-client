@@ -66,5 +66,8 @@
   },
   "files.associations": {
     "cstdint": "c"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
   }
 }
