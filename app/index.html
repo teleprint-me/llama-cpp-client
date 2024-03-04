@@ -12,6 +12,11 @@
             box-sizing: border-box;
         }
 
+        body {
+            color: white;
+            background-color: rgb(50, 50, 50);
+        }
+
         main {
             margin: 10px 0;
             padding: 10px 0;
@@ -19,10 +24,10 @@
             /* border: 1px solid red; */
         }
 
-        .container {
+        div.container {
             margin: 5px auto;
             padding: 5px;
-            border: 1px solid black;
+            border: 1px solid rgba(255, 192, 203, 0.33);
             border-radius: 5px;
             width: 50%;
         }
@@ -35,17 +40,17 @@
         }
 
         p.message {
-            margin: 5px;
-            padding: 5px;
+            margin: 10px;
+            padding: 10px;
         }
 
         p.message:nth-child(2n) {
-            background-color: rgba(225, 225, 225, 0.2);
-            border: 1px solid black;
+            background-color: rgba(100, 100, 100, 0.2);
+            border: 1px solid rgba(255, 192, 203, 0.1);
             border-radius: 5px;
         }
 
-        .animated-border {
+        p.animated-border {
             border: 1px solid pink;
             border-radius: 5px;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
@@ -56,28 +61,28 @@
         /* Keyframes for color cycle animation */
         @keyframes colorCycle {
             0% {
-                border: 1px solid rgb(247, 0, 255);
-                /* Start with a hot pink */
+                border: 1px solid rgb(255, 0, 0);
+                /* Start with red */
             }
 
             33% {
-                border: 1px solid rgb(255, 0, 0);
-                /* Use red to balance out the transitions */
+                border: 1px solid rgb(247, 0, 255);
+                /* Use "hot pink" to balance out the transitions */
             }
 
             50% {
-                border: 1px solid rgb(0, 255, 179);
-                /* Use a flat green to wash out the transition */
+                border: 1px solid rgb(0, 174, 255);
+                /* Middle out with a flat dark sky blue */
             }
 
             66% {
                 border: 1px solid rgb(136, 255, 0);
-                /* Use a lime green to generate a stark contrast */
+                /* Use a flat lime green to generate a stark contrast */
             }
 
             100% {
-                border: 1px solid rgb(0, 174, 255);
-                /* End with a sky blue */
+                border: 1px solid rgb(255, 255, 0);
+                /* Use yellow to balance out the transitions */
             }
         }
     </style>
@@ -99,6 +104,7 @@
                 <p class="message">
                     User: Hello! My name is Austin. What is your name?
                 </p>
+                <!-- NOTE: Animated borders only apply when the language model is actively generating text -->
                 <p class="message animated-border">
                     Assistant: Hello Austin, my name is StableLM. It's nice to
                     meet you!
