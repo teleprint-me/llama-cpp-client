@@ -49,7 +49,7 @@
             border: 1px solid pink;
             border-radius: 5px;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-            animation: colorCycle 2.5s infinite alternate;
+            animation: colorCycle 1s infinite alternate;
             /* Apply animation */
         }
 
@@ -87,17 +87,21 @@
     <main>
         <!-- System box -->
         <div class="container">
-            <div id="system-message"> My name is StableLM. I am an advanced
-                Large Language Model designed to assist you. </div>
+            <div id="system-message">
+                <p class="message">
+                    My name is StableLM. I am an advanced
+                    Large Language Model designed to assist you. </p>
+            </div>
         </div>
         <!-- Output box -->
         <div class="container">
             <div id="output-box">
                 <p class="message">
-                    You: [User input]
+                    User: Hello! My name is Austin. What is your name?
                 </p>
                 <p class="message animated-border">
-                    Assistant: [Assistant response based on system messages]
+                    Assistant: Hello Austin, my name is StableLM. It's nice to
+                    meet you!
                 </p>
             </div>
         </div>
