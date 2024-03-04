@@ -40,13 +40,45 @@
         }
 
         p.message:nth-child(2n) {
-            background-color: pink;
+            background-color: rgba(225, 225, 225, 0.2);
             border: 1px solid black;
             border-radius: 5px;
         }
 
         .animated-border {
-            animation: colorCycle 1s ease-in-out;
+            border: 1px solid pink;
+            border-radius: 5px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+            animation: colorCycle 2.5s infinite alternate;
+            /* Apply animation */
+        }
+
+        /* Keyframes for color cycle animation */
+        @keyframes colorCycle {
+            0% {
+                border: 1px solid rgb(247, 0, 255);
+                /* Start with a hot pink */
+            }
+
+            33% {
+                border: 1px solid rgb(255, 0, 0);
+                /* Use red to balance out the transitions */
+            }
+
+            50% {
+                border: 1px solid rgb(0, 255, 179);
+                /* Use a flat green to wash out the transition */
+            }
+
+            66% {
+                border: 1px solid rgb(136, 255, 0);
+                /* Use a lime green to generate a stark contrast */
+            }
+
+            100% {
+                border: 1px solid rgb(0, 174, 255);
+                /* End with a sky blue */
+            }
         }
     </style>
 </head>
