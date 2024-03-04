@@ -5,20 +5,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Model</title>
+    <style></style>
 </head>
 
 <body>
-    <!-- System box -->
-    <!-- This will display the language model's system message -->
+    <main>
+        <!-- System box -->
+        <div class="container">
+            <div id="system-message"> Your interactions with StableLM are
+                powered by
+                advanced AI technology designed to assist you. </div>
+        </div>
+        <!-- Output box -->
+        <div class="container">
 
-    <!-- Output box -->
-    <!-- This will display the conversational dialog between the user and assistant -->
+            <div id="output-box"> You: [User input] Assistant: [Assistant
+                response
+                based
+                on system messages]</div>
+        </div>
+        <!-- Input box -->
+        <div class="container">
 
-    <!-- Input box -->
-    <!-- A text area that allows the user to input a message -->
+            <input type="text" id="user-input"
+                placeholder="Type your message here..." />
+            <!-- Submit button -->
+            <button onclick="submitUserInput()">Submit</button>
+        </div>
+    </main>
 
-    <!-- Submit button -->
-    <!-- This will allow the user to submit their message to the assistant -->
+    <script>
+        // This function handles the submission of user input
+        function submitUserInput() {
+            const userInput = document.getElementById("user-input").value;
+
+            // Call API endpoint to process and respond to the input
+            makeRequest(userInput);
+        }
+
+        // Make a RESTful API request here. For example:
+        async function makeRequest(input) {
+            // Perform some action based on the user's input.
+            const response = await fetch("http://localhost:8080/completion", {
+                method: "POST",
+                body: JSON.stringify({ input }),
+                headers: { "Content-Type": "application/json" }
+            });
+
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error(response.statusText);
+            }
+        }
+    </script>
 </body>
 
 </html>
