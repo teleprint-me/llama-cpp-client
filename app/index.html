@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Model</title>
+
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
+        rel="stylesheet" />
+
     <style>
         * {
             margin: 0;
@@ -14,51 +18,120 @@
 
         body {
             color: rgb(240, 240, 240);
-            background-color: rgb(50, 50, 50);
+            background-color: rgb(30, 30, 30);
         }
 
         main {
             margin: 10px 0;
             padding: 10px 0;
-            /* use border to debug */
             /* border: 1px solid red; */
+            /* use border to debug */
         }
 
         div.container {
             margin: 5px auto;
             padding: 5px;
             border: 1px solid rgba(255, 192, 203, 0.33);
+            background-color: rgb(40, 40, 40);
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
             border-radius: 5px;
             width: 50%;
         }
 
-        div#output-box {
+        div#context-window {
             display: flex;
             flex-flow: column nowrap;
             align-items: start;
             justify-content: center;
         }
 
-        p.message {
+        div.message {
             margin: 10px;
             padding: 10px;
-            background-color: rgba(75, 75, 75, 0.1);
+            background-color: rgba(50, 50, 50, 0.1);
             border: 1px solid rgba(255, 192, 203, 0.1);
             border-radius: 5px;
         }
 
-        p.message:nth-child(2n) {
-            background-color: rgba(100, 100, 100, 0.2);
+        div.message:nth-child(2n) {
+            background-color: rgba(75, 75, 75, 0.2);
             border: 1px solid rgba(255, 192, 203, 0.1);
             border-radius: 5px;
         }
 
-        p.animated-border {
+        div.animated-border {
             border: 1px solid pink;
             border-radius: 5px;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
             animation: colorCycle 1s infinite alternate;
             /* Apply animation */
+        }
+
+        div.input-row {
+            display: flex;
+            justify-content: center;
+        }
+
+        textarea {
+            color: rgb(240, 240, 240);
+            background-color: rgb(75, 75, 75);
+
+            width: 100%;
+
+            margin: 5px;
+            padding: 10px;
+
+            border: 1px solid rgba(255, 192, 203, 0.33);
+            /* widget has custom themed border color */
+            border-radius: 5px;
+
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+            /* give widgets a hover-like effect */
+            /* make widgets feel smooth and responsive */
+        }
+
+        textarea:hover {
+            border: 1px solid rgba(255, 255, 0, 0.33);
+        }
+
+        textarea:focus,
+        textarea:active {
+            outline: none !important;
+            border: 1px solid rgba(9, 255, 0, 0.33);
+        }
+
+        div.button-row {
+            display: flex;
+            flex-flow: row nowrap;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button {
+            color: rgb(240, 240, 240);
+            margin: 5px 3px;
+            padding: 5px;
+            background-color: rgb(75, 75, 75);
+            transition: all 50ms ease-in-out;
+            border: 1px solid rgba(255, 192, 203, 0.33);
+            /* widget is pink by default */
+            border-radius: 5px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 100ms ease-in-out;
+            /* make buttons feel responsive and snappy */
+        }
+
+        button:hover {
+            border: 1px solid rgba(255, 255, 0, 0.33);
+            /* widget is yellow on hover */
+        }
+
+        button:active {
+            background-color: rgb(65, 65, 65);
+            border: 1px solid rgba(9, 255, 0, 0.33);
+            /* widget is green on active */
+            transform: scale(0.95);
+            box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
         }
 
         /* Keyframes for color cycle animation */
@@ -93,57 +166,98 @@
 
 <body>
     <main>
-        <!-- System box -->
+        <!-- Output widget -->
         <div class="container">
-            <div id="system-message">
-                <p class="message">
-                    My name is StableLM. I am an advanced
-                    Large Language Model designed to assist you. </p>
+            <div id="context-window">
+                <!-- Messages -->
+                <div data-role="system" class="message">
+                    <p>Welcome to the conversation.</p>
+                </div>
+                <div data-role="user" class="message">
+                    <p>Hello! My name is **Austin**. What is your name?</p>
+                </div>
+                <div data-role="assistant" class="message animated-border">
+                    <code>print("Hello Austin, my name is StableLM.")</code>
+                </div>
             </div>
         </div>
-        <!-- Output box -->
+        <!-- Input widget -->
         <div class="container">
-            <div id="output-box">
-                <p class="message">
-                    User: Hello! My name is Austin. What is your name?
-                </p>
-                <!-- NOTE: Animated borders only apply when the language model is actively generating text -->
-                <p class="message animated-border">
-                    Assistant: Hello Austin, my name is StableLM. It's nice to
-                    meet you!
-                </p>
+            <div id="user-input">
+                <!-- Textarea input field -->
+                <div class="input-row">
+                    <textarea id="user-prompt" class="input-field"
+                        placeholder="Type your message here..."></textarea>
+                </div>
+                <!-- Button group -->
+                <div class="button-row">
+                    <button id="generate-completion">
+                        <i class='bx bx-play'></i>
+                        <p>Generate</p>
+                    </button>
+                    <button id="stop-completion">
+                        <i class='bx bx-stop'></i>
+                        <p>Stop</p>
+                    </button>
+                    <button id="regenerate-completion"
+                        class="completion-button">
+                        <i class='bx bx-rotate-right'></i>
+                        <p>Regenerate</p>
+                    </button>
+                    <button id="model-parameters">
+                        <i class='bx bx-cog'></i>
+                        <p>Parameters</p>
+                    </button>
+                </div>
             </div>
         </div>
-        <!-- Input box -->
-        <div class="container">
-            <div id="input-box">
-                <input type="text" id="user-input"
-                    placeholder="Type your message here..." />
-                <!-- Submit button -->
-                <button id="generateCompletion">Generate</button>
-            </div>
     </main>
 
     <script>
-        // Handle user input on button click
-        let button = document.querySelector('#generateCompletion');
-        button.addEventListener('click', generateCompletion);
+        // these will be set by the user once the ui/ux is implemented
+        // /v1/chat/completions uses ChatML messaging structure
+        let parameters = {
+            stream: true, // optional, get tokens as they're generated
+            cache_prompt: true, // optional, enhance model response times
+            seed: 1337, // useful for testing, can be set to null in production
+            prompt: "",  // optional, for /completion endpoint
+            messages: [], // optional, for /v1/chat/completions endpoint
+            top_k: 50,
+            top_p: 0.9,
+            min_p: 0.1,
+            temperature: 0.7,
+            presence_penalty: 0.0,
+            frequency_penalty: 0.0,
+            repeat_penalty: 1.1,
+            n_predict: -1, // -1 allows model to choose when to stop
+        };
 
-        // This function handles the submission of user input
-        function generateCompletion(event) {
-            console.log(event);
-            const userInput = document.getElementById('user-input').value;
+        function getModelCompletionButton() {
+            // This function handles the submission of user input
+            function generateModelCompletion(event) {
+                console.log(event);
+                const prompt = document.getElementById('user-prompt').value;
 
-            // Call API endpoint to process and respond to the input
-            llamaCppRequest(userInput);
+                // Call API endpoint to process and respond to the input
+                let modelResponse = llamaCppRequest(prompt);
+
+                // Process model response and concat tokens to output message as they're received
+                console.log(modelResponse);
+            }
+
+            // Handle user input on button click
+            let button = document.querySelector('#generate-completion');
+            button.addEventListener('click', generateModelCompletion);
+            return button;
         }
 
         // Make a RESTful API request here. For example:
-        async function llamaCppRequest(input) {
+        async function llamaCppRequest(prompt) {
+            parameters.prompt = prompt;
             // Perform some action based on the user's input.
             const response = await fetch("http://127.0.0.1:8080/completion", {
                 method: "POST",
-                body: JSON.stringify({ input }),
+                body: JSON.stringify(parameters),
                 headers: { "Content-Type": "application/json" }
             });
 
