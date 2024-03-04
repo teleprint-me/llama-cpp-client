@@ -13,7 +13,7 @@
         }
 
         body {
-            color: white;
+            color: rgb(240, 240, 240);
             background-color: rgb(50, 50, 50);
         }
 
@@ -42,6 +42,9 @@
         p.message {
             margin: 10px;
             padding: 10px;
+            background-color: rgba(75, 75, 75, 0.1);
+            border: 1px solid rgba(255, 192, 203, 0.1);
+            border-radius: 5px;
         }
 
         p.message:nth-child(2n) {
@@ -113,27 +116,27 @@
         </div>
         <!-- Input box -->
         <div class="container">
-            <input type="text" id="user-input"
-                placeholder="Type your message here..." />
-            <!-- Submit button -->
-            <button id="submitUserInput">Submit</button>
-        </div>
+            <div id="input-box">
+                <input type="text" id="user-input"
+                    placeholder="Type your message here..." />
+                <!-- Submit button -->
+                <button id="generateCompletion">Generate</button>
+            </div>
     </main>
 
     <script>
-        let messages = [];
+        // Handle user input on button click
+        let button = document.querySelector('#generateCompletion');
+        button.addEventListener('click', generateCompletion);
 
         // This function handles the submission of user input
-        function submitUserInput(event) {
+        function generateCompletion(event) {
             console.log(event);
-            const userInput = document.getElementById("user-input").value;
+            const userInput = document.getElementById('user-input').value;
 
             // Call API endpoint to process and respond to the input
             llamaCppRequest(userInput);
         }
-
-        let button = document.querySelector("#submitUserInput");
-        button.addEventListener("click", submitUserInput);
 
         // Make a RESTful API request here. For example:
         async function llamaCppRequest(input) {
