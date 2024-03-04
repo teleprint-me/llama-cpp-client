@@ -5,48 +5,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Model</title>
-    <style></style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        main {
+            margin: 10px 0;
+            padding: 10px 0;
+            /* use border to debug */
+            /* border: 1px solid red; */
+        }
+
+        .container {
+            margin: 5px auto;
+            padding: 5px;
+            border: 1px solid black;
+            border-radius: 5px;
+            width: 50%;
+        }
+
+        div#output-box {
+            display: flex;
+            flex-flow: column nowrap;
+            align-items: start;
+            justify-content: center;
+        }
+
+        p.message {
+            margin: 5px;
+            padding: 5px;
+        }
+
+        p.message:nth-child(2n) {
+            background-color: pink;
+            border: 1px solid black;
+            border-radius: 5px;
+        }
+
+        .animated-border {
+            animation: colorCycle 1s ease-in-out;
+        }
+    </style>
 </head>
 
 <body>
     <main>
         <!-- System box -->
         <div class="container">
-            <div id="system-message"> Your interactions with StableLM are
-                powered by
-                advanced AI technology designed to assist you. </div>
+            <div id="system-message"> My name is StableLM. I am an advanced
+                Large Language Model designed to assist you. </div>
         </div>
         <!-- Output box -->
         <div class="container">
-
-            <div id="output-box"> You: [User input] Assistant: [Assistant
-                response
-                based
-                on system messages]</div>
+            <div id="output-box">
+                <p class="message">
+                    You: [User input]
+                </p>
+                <p class="message animated-border">
+                    Assistant: [Assistant response based on system messages]
+                </p>
+            </div>
         </div>
         <!-- Input box -->
         <div class="container">
-
             <input type="text" id="user-input"
                 placeholder="Type your message here..." />
             <!-- Submit button -->
-            <button onclick="submitUserInput()">Submit</button>
+            <button id="submitUserInput">Submit</button>
         </div>
     </main>
 
     <script>
+        let messages = [];
+
         // This function handles the submission of user input
-        function submitUserInput() {
+        function submitUserInput(event) {
+            console.log(event);
             const userInput = document.getElementById("user-input").value;
 
             // Call API endpoint to process and respond to the input
-            makeRequest(userInput);
+            llamaCppRequest(userInput);
         }
 
+        let button = document.querySelector("#submitUserInput");
+        button.addEventListener("click", submitUserInput);
+
         // Make a RESTful API request here. For example:
-        async function makeRequest(input) {
+        async function llamaCppRequest(input) {
             // Perform some action based on the user's input.
-            const response = await fetch("http://localhost:8080/completion", {
+            const response = await fetch("http://127.0.0.1:8080/completion", {
                 method: "POST",
                 body: JSON.stringify({ input }),
                 headers: { "Content-Type": "application/json" }
