@@ -61,61 +61,9 @@
         </div>
     </main>
 
-    <script>
-        // these will be set by the user once the ui/ux is implemented
-        // /v1/chat/completions uses ChatML messaging structure
-        let parameters = {
-            stream: true, // optional, get tokens as they're generated
-            cache_prompt: true, // optional, enhance model response times
-            seed: 1337, // useful for testing, can be set to null in production
-            prompt: "",  // optional, for /completion endpoint
-            messages: [], // optional, for /v1/chat/completions endpoint
-            top_k: 50,
-            top_p: 0.9,
-            min_p: 0.1,
-            temperature: 0.7,
-            presence_penalty: 0.0,
-            frequency_penalty: 0.0,
-            repeat_penalty: 1.1,
-            n_predict: -1, // -1 allows model to choose when to stop
-        };
-
-        function getModelCompletionButton() {
-            // This function handles the submission of user input
-            function generateModelCompletion(event) {
-                console.log(event);
-                const prompt = document.getElementById('user-prompt').value;
-
-                // Call API endpoint to process and respond to the input
-                let modelResponse = llamaCppRequest(prompt);
-
-                // Process model response and concat tokens to output message as they're received
-                console.log(modelResponse);
-            }
-
-            // Handle user input on button click
-            let button = document.querySelector('#generate-completion');
-            button.addEventListener('click', generateModelCompletion);
-            return button;
-        }
-
-        // Make a RESTful API request here. For example:
-        async function llamaCppRequest(prompt) {
-            parameters.prompt = prompt;
-            // Perform some action based on the user's input.
-            const response = await fetch("http://127.0.0.1:8080/completion", {
-                method: "POST",
-                body: JSON.stringify(parameters),
-                headers: { "Content-Type": "application/json" }
-            });
-
-            if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error(response.statusText);
-            }
-        }
-    </script>
+    <script src="scripts/context.js"></script>
+    <script src="scripts/request.js"></script>
+    <script src="scripts/main.js"></script>
 </body>
 
 </html>
