@@ -35,34 +35,35 @@ async function llamaCppRequest(prompt) {
 }
 
 // Function to handle streamed tokens and update the UI in real-time
-async function handleStreamedTokens(chatTemplate, assistantMessageDiv) {
+async function handleStreamedTokens(assistantMessageDiv) {
   const responseStream = await llamaCppRequest(parameters.prompt);
   const reader = responseStream.body.getReader();
-  const prefix = chatTemplate.assistant.prefix || '';
-  const postfix = chatTemplate.assistant.postfix || '';
 
   try {
     while (true) {
       const { done, value } = await reader.read();
-      // Clean up before exiting the loop
-      if (done || token.stop) {
-        // If the completion process is finished, stop the animation
-        assistantMessageDiv.classList.remove('animated-border');
-        break; // Exit the loop on completion
+      if (done) {
+        break;
       }
 
       // Convert stream value to text
       const tokenString = new TextDecoder('utf-8').decode(value);
       // Handle the "data: " prefix
       const token = JSON.parse(tokenString.substring(6));
-      // NOTE: Skip content when empty, e.g. ""
+
       // Dynamically update the assistant's message content
-      if (token.content) {
-        messageDiv.textContent += prefix + token.content + postfix;
+      assistantMessageDiv.textContent += token.content;
+
+      // If the completion process is finished, stop the animation
+      if (token.stop) {
+        assistantMessageDiv.classList.remove('animated-border');
+        break; // Exit the loop if the message is complete
       }
     }
   } catch (e) {
-    console.error('Stream reading failed', e);
+    console.error('Stream reading failed:', e);
+    assistantMessageDiv.classList.remove('animated-border'); // Stop the normal animation
+    assistantMessageDiv.classList.add('animated-border-error'); // Indicate an error state
   }
 }
 
