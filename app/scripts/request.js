@@ -39,15 +39,14 @@ function processStreamValue(value) {
   let token = null;
 
   // Attempt to directly parse the token assuming a "data: " prefix
-  try {
-    token = JSON.parse(tokenString.substring(6));
-  } catch (e) {
-    console.warn('Failed to parse token, applying workaround.', e.message);
-    // Attempt workaround for concatenated responses or other anomalies
-    const split = tokenString.split('data: ');
-    const potentialJson = split[split.length - 1];
-    token = JSON.parse(potentialJson);
-  }
+  // NOTE: Use split to gracefully handle malformed responses
+  // Some responses may intermittently be contcatenated.
+  // This requires a deeper investigation into the llama.cpp source code.
+  const split = tokenString.split('data: ');
+  // Always get the last element from the split results
+  const potentialJson = split[split.length - 1];
+  // Parse the data payload object
+  token = JSON.parse(potentialJson);
 
   return token;
 }
