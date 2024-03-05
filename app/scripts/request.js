@@ -43,24 +43,42 @@ async function handleStreamedTokens(assistantMessageDiv) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
+        console.warn('Model did not emit a stop token.');
         break;
       }
 
       // Convert stream value to text
       const tokenString = new TextDecoder('utf-8').decode(value);
-      // Handle the "data: " prefix
-      const token = JSON.parse(tokenString.substring(6));
+      let token = '';
+
+      try {
+        // Handle the "data: " prefix
+        token = JSON.parse(tokenString.substring(6));
+      } catch (e) {
+        // This handle a potential bug in the llama.cpp server response
+        // Still investigating...
+        console.warn(
+          'Applying workaround for a malformed response. Continuing as if nothing occurred.'
+        );
+        const split = tokenString.split('data: ');
+        token = split[split.length - 1];
+      }
+
+      // Token debug statement
+      console.info('token:', token);
 
       // Dynamically update the assistant's message content
       assistantMessageDiv.textContent += token.content;
 
-      // If the completion process is finished, stop the animation
       if (token.stop) {
-        assistantMessageDiv.classList.remove('animated-border');
+        console.log('Received stop token from model.');
         break; // Exit the loop if the message is complete
       }
     }
+    // Stop the animation if the loop exited normally.
+    assistantMessageDiv.classList.remove('animated-border');
   } catch (e) {
+    // Something unexpected happened
     console.error('Stream reading failed:', e);
     assistantMessageDiv.classList.remove('animated-border'); // Stop the normal animation
     assistantMessageDiv.classList.add('animated-border-error'); // Indicate an error state
