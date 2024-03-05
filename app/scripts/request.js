@@ -34,19 +34,30 @@ async function llamaCppRequest(prompt) {
   return response; // Return the response stream for processing
 }
 
+/**
+ * Processes a streamed value from the server response, handling potential variations in format.
+ *
+ * This function decodes a Uint8Array value into a string and attempts to parse it as JSON.
+ * Due to an identified issue with concatenated server responses (e.g., multiple JSON objects prefixed
+ * with "data: " in a single response), this function splits the string on "data: " and parses the last segment.
+ * This approach is a workaround for handling intermittent concatenated responses and may be subject to revision
+ * upon further investigation into the server's behavior.
+ *
+ * @param {Uint8Array} value - The streamed value received from the server.
+ * @returns {Object} The parsed JSON object from the server response.
+ */
 function processStreamValue(value) {
+  // Decode the streamed value into a string
   const tokenString = new TextDecoder('utf-8').decode(value);
-  let token = null;
 
-  // Attempt to directly parse the token assuming a "data: " prefix
-  // NOTE: Use split to gracefully handle malformed responses
-  // Some responses may intermittently be contcatenated.
-  // This requires a deeper investigation into the llama.cpp source code.
+  // Split the string on "data: " to handle concatenated responses
   const split = tokenString.split('data: ');
-  // Always get the last element from the split results
+
+  // Get the last segment as it is expected to contain the most recent JSON object
   const potentialJson = split[split.length - 1];
-  // Parse the data payload object
-  token = JSON.parse(potentialJson);
+
+  // Parse the potential JSON object
+  const token = JSON.parse(potentialJson);
 
   return token;
 }
