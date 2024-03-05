@@ -3,7 +3,7 @@
 // These parameters will be set by the user once the UI/UX is implemented.
 // Note: The /v1/chat/completions endpoint uses ChatML messaging structure.
 // Default parameters to enable basic functionality.
-let parameters = {
+const parameters = {
   stream: true, // Optional: Get tokens as they're generated.
   cache_prompt: true, // Optional: Enhance model response times.
   seed: 1337, // Useful for testing; can be set to null in production.
