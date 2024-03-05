@@ -19,6 +19,23 @@ const parameters = {
   n_predict: -1 // -1 allows the model to choose when to stop prediction.
 };
 
+// Make a RESTful API request here. For example:
+async function llamaCppRequest(prompt) {
+  parameters.prompt = prompt;
+  // Perform some action based on the user's input.
+  const response = await fetch('http://127.0.0.1:8080/completion', {
+    method: 'POST',
+    body: JSON.stringify(parameters),
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (response.ok) {
+    return response.json();
+  } else {
+    throw new Error(response.statusText);
+  }
+}
+
 // Function to handle streamed tokens and update the UI in real-time
 async function handleStreamedTokens(chatTemplate, assistantMessageDiv) {
   const responseStream = await llamaCppRequest(parameters.prompt);
@@ -84,23 +101,6 @@ function getModelCompletionButton() {
   let button = document.querySelector('#generate-completion');
   button.addEventListener('click', generateModelCompletion);
   return button;
-}
-
-// Make a RESTful API request here. For example:
-async function llamaCppRequest(prompt) {
-  parameters.prompt = prompt;
-  // Perform some action based on the user's input.
-  const response = await fetch('http://127.0.0.1:8080/completion', {
-    method: 'POST',
-    body: JSON.stringify(parameters),
-    headers: { 'Content-Type': 'application/json' }
-  });
-
-  if (response.ok) {
-    return response.json();
-  } else {
-    throw new Error(response.statusText);
-  }
 }
 
 // Example usage of handleStreamedTokens function (replace with actual API response handling)
