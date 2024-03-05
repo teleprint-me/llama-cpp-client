@@ -10,11 +10,11 @@
 let messages = [];
 
 // Template for formatting chat messages
-let mistralChatTemplate = {
-  model: 'Mistral',
+let modelChatTemplate = {
+  model: 'llama',
   system: {
-    prefix: '',
-    postfix: ''
+    prefix: '<<SYS>>',
+    postfix: '<</SYS>>'
   },
   user: {
     prefix: '[INST] ',
@@ -23,6 +23,9 @@ let mistralChatTemplate = {
   assistant: {
     prefix: '',
     postfix: ''
+  },
+  getModelAsName: function () {
+    return this.model.charAt(0).toUpperCase() + this.model.slice(1);
   }
 };
 
@@ -41,7 +44,7 @@ function getModelContextWindow() {
  * @returns {string} The generated system message.
  */
 function getModelSystemMessage(chatTemplate) {
-  let model = chatTemplate.model;
+  let model = chatTemplate.getModelAsName();
   let prefix = chatTemplate.system.prefix || '';
   let postfix = chatTemplate.system.postfix || '';
 
