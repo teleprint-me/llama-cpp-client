@@ -66,32 +66,33 @@ async function handleStreamedTokens(chatTemplate, assistantMessageDiv) {
   }
 }
 
-// This function handles the submission of user input
+// This function handles user input and initiates the model response process
 function generateModelCompletion(event) {
-  console.log(event);
-  const prompt = document.getElementById('user-prompt').value;
-  // we want to clear the textarea once the user submits their message and we've stored it. We can only clear it after we've stored it.
+  // Get the users input prompt
+  const prompt = document.querySelector('textarea#user-prompt').value.trim();
+  if (!prompt) {
+    alert('Please enter a prompt.'); // Basic validation
+    return;
+  }
 
-  // There's another intermediary step here that's tricky because we need to have the model parameters as well as well as the chat template if there is any.
+  // Create the users message div
+  const userMessageDiv = createChatMessage(modelChatTemplate, 'user');
+  // Add the user message to the context window
+  userMessageDiv.innerText = prompt;
+  // Append the users message div to the context window
+  document.querySelector('div#context-window').appendChild(userMessageDiv);
+  // Clear the input field
+  document.querySelector('textarea#user-prompt').value = '';
 
-  // it's possible the model has no special tokens for a chat template because its a continuation model, e.g. the model assists with coding and is not fine-tuned on instructions or conversation.
+  // Create the assistant's message div with a placeholder or loading state
+  const assistantMessageDiv = createChatMessage(modelChatTemplate, 'assistant');
+  // Append the assistants message div to the context window
+  document.querySelector('div#context-window').appendChild(assistantMessageDiv);
+  // Update parameters with the current prompt
+  parameters.prompt = prompt;
 
-  // There will need to be a method for handling this at some point, but my intuition tells me to separate concerns and simply focus on chat to keep it simple until basic functionality is implemented.
-
-  // create the models message
-  // assistantMessage = createChatMessage(chatTemplate, role, content = null)
-
-  // add the div to the context window; this needs to be implemented
-  // contextWindow = document.querySelector("div#context-window")
-  // contextWindow.append(assistantMessage);
-
-  // Call API endpoint to process and respond to the input
-  let modelResponse = llamaCppRequest(prompt);
-
-  // populate the div's content using the models response to stream the chunks, e.g. hadnleStreamedTokens
-
-  // Process model response and concat tokens to output message as they're received
-  console.log(modelResponse);
+  // Handle streamed tokens and update the assistant message div in real-time
+  handleStreamedTokens(assistantMessageDiv);
 }
 
 function getModelCompletionButton() {
