@@ -94,21 +94,3 @@ function generateModelCompletion(event) {
   // Handle streamed tokens and update the assistant message div in real-time
   handleStreamedTokens(assistantMessageDiv);
 }
-
-function getModelCompletionButton() {
-  // Handle user input on button click
-  let button = document.querySelector('#generate-completion');
-  button.addEventListener('click', generateModelCompletion);
-  return button;
-}
-
-// Example usage of handleStreamedTokens function (replace with actual API response handling)
-let responseStrings = [
-  'data: {"content":"Hello","multimodal":false,"slot_id":0,"stop":false}',
-  'data: {"content":" Austin","multimodal":false,"slot_id":0,"stop":false}',
-  'data: {"content":"!","multimodal":false,"slot_id":0,"stop":false}'
-  // Add more token strings as needed
-];
-
-// Simulate handling streamed tokens
-responseStrings.forEach(handleStreamedTokens);
