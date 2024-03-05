@@ -34,54 +34,57 @@ async function llamaCppRequest(prompt) {
   return response; // Return the response stream for processing
 }
 
+function processStreamValue(value) {
+  const tokenString = new TextDecoder('utf-8').decode(value);
+  let token = null;
+
+  // Attempt to directly parse the token assuming a "data: " prefix
+  try {
+    token = JSON.parse(tokenString.substring(6));
+  } catch (e) {
+    console.warn('Failed to parse token, applying workaround.', e.message);
+    // Attempt workaround for concatenated responses or other anomalies
+    const split = tokenString.split('data: ');
+    const potentialJson = split[split.length - 1];
+    token = JSON.parse(potentialJson);
+  }
+
+  return token;
+}
+
+function signalErrorState(element) {
+  element.classList.remove('animated-border'); // Stop the normal animation
+  element.classList.add('animated-border-error'); // Indicate an error state
+}
+
 // Function to handle streamed tokens and update the UI in real-time
 async function handleStreamedTokens(assistantMessageDiv) {
-  const responseStream = await llamaCppRequest(parameters.prompt);
-  const reader = responseStream.body.getReader();
-
   try {
+    const responseStream = await llamaCppRequest(parameters.prompt);
+    const reader = responseStream.body.getReader();
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
-        console.warn('Model did not emit a stop token.');
-        break;
+        console.warn('Stream ended without a stop token.');
+        break; // Exit the loop when the stream is done
       }
 
-      // Convert stream value to text
-      const tokenString = new TextDecoder('utf-8').decode(value);
-      let token = '';
-
-      try {
-        // Handle the "data: " prefix
-        token = JSON.parse(tokenString.substring(6));
-      } catch (e) {
-        // This handle a potential bug in the llama.cpp server response
-        // Still investigating...
-        console.warn(
-          'Applying workaround for a malformed response. Continuing as if nothing occurred.'
-        );
-        const split = tokenString.split('data: ');
-        token = split[split.length - 1];
-      }
-
-      // Token debug statement
-      console.info('token:', token);
-
-      // Dynamically update the assistant's message content
+      // Attempt to process the stream's value
+      const token = processStreamValue(value);
+      // Update UI; Note that token.content may be an empty string and will have no effect when that is the case.
       assistantMessageDiv.textContent += token.content;
-
       if (token.stop) {
-        console.log('Received stop token from model.');
-        break; // Exit the loop if the message is complete
+        console.log('Received stop token.');
+        break; // Exit the loop on receiving stop token
       }
     }
-    // Stop the animation if the loop exited normally.
+  } catch (error) {
+    console.error('Failed to read stream:', error);
+    signalErrorState(assistantMessageDiv);
+  } finally {
+    // Ensure the animation is stopped regardless of how the loop exits
     assistantMessageDiv.classList.remove('animated-border');
-  } catch (e) {
-    // Something unexpected happened
-    console.error('Stream reading failed:', e);
-    assistantMessageDiv.classList.remove('animated-border'); // Stop the normal animation
-    assistantMessageDiv.classList.add('animated-border-error'); // Indicate an error state
   }
 }
 
