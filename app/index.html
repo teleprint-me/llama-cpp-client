@@ -6,27 +6,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Model</title>
 
-    <link rel="stylesheet" href="styles/main.css">
-
+    <!-- Remote Dependencies -->
     <link rel="stylesheet"
         href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+
+    <!-- Local Dependencies -->
+    <link rel="stylesheet" href="styles/main.css">
+
 </head>
 
 <body>
+    <header>
+        <h4>Completion Endpoint</h4>
+        <h5>Prototype v1</h5>
+    </header>
     <main>
         <!-- Output widget -->
         <div class="container">
             <div id="context-window">
                 <!-- Messages -->
                 <div data-role="system" class="message">
-                    <p>Welcome to the conversation.</p>
+                    <p>Welcome to the conversation!</p>
                 </div>
-                <div data-role="user" class="message">
+                <!-- <div data-role="user" class="message">
                     <p>Hello! My name is **Austin**. What is your name?</p>
                 </div>
                 <div data-role="assistant" class="message animated-border">
-                    <code>print("Hello Austin, my name is StableLM.")</code>
-                </div>
+                    <pre><code>print("Hello Austin, my name is StableLM.")</code></pre>
+                </div> -->
             </div>
         </div>
         <!-- Input widget -->
@@ -61,9 +70,16 @@
         </div>
     </main>
 
+    <!-- Remote Dependencies -->
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Local Dependencies -->
     <script src="scripts/context.js"></script>
     <script src="scripts/request.js"></script>
     <script src="scripts/main.js"></script>
+
 </body>
 
 </html>

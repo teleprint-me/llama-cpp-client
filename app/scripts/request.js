@@ -68,7 +68,10 @@ function signalErrorState(element) {
 }
 
 // Function to handle streamed tokens and update the UI in real-time
-async function handleStreamedTokens(assistantMessageDiv) {
+async function handleStreamedTokens(assistantMessageDiv, initialPrompt) {
+  // Initialize a variable to hold the aggregated content
+  let aggregatedContent = initialPrompt;
+
   try {
     const responseStream = await llamaCppRequest(parameters.prompt);
     const reader = responseStream.body.getReader();
@@ -80,10 +83,19 @@ async function handleStreamedTokens(assistantMessageDiv) {
         break; // Exit the loop when the stream is done
       }
 
-      // Attempt to process the stream's value
+      // Process the stream's value
       const token = processStreamValue(value);
-      // Update UI; Note that token.content may be an empty string and will have no effect when that is the case.
-      assistantMessageDiv.textContent += token.content;
+      // Append new token content to the aggregated content variable
+      aggregatedContent += token.content;
+
+      // Update the assistantMessageDiv with the current aggregated content processed as markdown
+      // Note: The entire aggregated content is re-processed to maintain formatting consistency
+      assistantMessageDiv.innerHTML = marked.parse(aggregatedContent);
+      // Need to update to highlight all code blocks within the element
+      assistantMessageDiv.querySelectorAll('pre code').forEach((block) => {
+        hljs.highlightBlock(block);
+      });
+
       if (token.stop) {
         console.log('Received stop token.');
         break; // Exit the loop on receiving stop token
@@ -106,23 +118,17 @@ function generateModelCompletion(event) {
     alert('Please enter a prompt.'); // Basic validation
     return;
   }
-
-  // Create the users message div
-  const userMessageDiv = createChatMessage(modelChatTemplate, 'user');
-  // Add the user message to the context window
-  userMessageDiv.innerText = prompt;
-  // Append the users message div to the context window
-  document.querySelector('div#context-window').appendChild(userMessageDiv);
   // Clear the input field
   document.querySelector('textarea#user-prompt').value = '';
 
   // Create the assistant's message div with a placeholder or loading state
-  const assistantMessageDiv = createChatMessage(modelChatTemplate, 'assistant');
+  // and add the user message to the context window
+  const assistantMessageDiv = createCompletion('assistant', prompt);
   // Append the assistants message div to the context window
   document.querySelector('div#context-window').appendChild(assistantMessageDiv);
   // Update parameters with the current prompt
   parameters.prompt = prompt;
 
   // Handle streamed tokens and update the assistant message div in real-time
-  handleStreamedTokens(assistantMessageDiv);
+  handleStreamedTokens(assistantMessageDiv, prompt);
 }

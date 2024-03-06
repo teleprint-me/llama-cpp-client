@@ -16,6 +16,10 @@ main {
     /* use border to debug */
 }
 
+code {
+    background-color: rgb(30, 30, 30);
+}
+
 div.container {
     margin: 5px auto;
     padding: 5px;
@@ -28,7 +32,6 @@ div.container {
 div#context-window {
     display: flex;
     flex-flow: column nowrap;
-    align-items: start;
     justify-content: center;
 }
 
@@ -44,6 +47,16 @@ div.message:nth-child(2n) {
     background-color: rgba(75, 75, 75, 0.2);
     border: 1px solid rgba(255, 192, 203, 0.1);
     border-radius: 5px;
+}
+
+div.message p {
+    margin: 5px;
+    padding: 5px;
+}
+
+div.message ul, div.message ol {
+    margin: 10px;
+    padding: 10px;
 }
 
 div.input-row {

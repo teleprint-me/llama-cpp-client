@@ -52,13 +52,12 @@ function getModelSystemMessage(chatTemplate) {
 }
 
 /**
- * Creates a message element for the chat interface.
- * @param {Object} chatTemplate - The chat template object.
+ * Creates a message element for the completion interface.
  * @param {string} role - The role of the message (system, user, assistant).
  * @param {string} content - The content of the message.
  * @returns {HTMLElement} The created message element.
  */
-function createChatMessage(chatTemplate, role, content = null) {
+function createCompletion(role, content = null) {
   // Create a new <div> element
   let div = document.createElement('div');
 
@@ -75,23 +74,8 @@ function createChatMessage(chatTemplate, role, content = null) {
 
   // Set the content of the message, if provided
   if (content !== null) {
-    // Check if the role exists in the chatTemplate
-    if (chatTemplate.hasOwnProperty(role)) {
-      // Retrieve prefix and postfix values from the chatTemplate
-      let prefix = chatTemplate[role].prefix || '';
-      let postfix = chatTemplate[role].postfix || '';
-
-      // Create a new <p> element
-      let p = document.createElement('p');
-
-      // Set inner HTML content allowing for HTML formatting
-      p.innerHTML = `${prefix}${content}${postfix}`;
-
-      // Append the <p> element to the <div>
-      div.appendChild(p);
-    } else {
-      console.error(`Role '${role}' not found in chat template.`);
-    }
+    // Set inner text content allowing for automated formatting
+    div.innerHTML = marked.parse(content);
   }
 
   // Return the created message element
