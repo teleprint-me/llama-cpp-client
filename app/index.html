@@ -19,42 +19,35 @@
 
 <body>
     <header>
-        <h4>Completion Endpoint</h4>
-        <h5>Prototype v1</h5>
+        <div class="container">
+            <nav>
+                <h3>Completion Endpoint</h3>
+                <h4>Prototype v1</h4>
+            </nav>
+        </div>
     </header>
+
     <main>
-        <!-- Output widget -->
         <div class="container">
             <div id="context-window">
-                <!-- Messages -->
-                <div data-role="system" class="message">
-                    <p>Welcome to the conversation!</p>
-                </div>
-                <!-- <div data-role="user" class="message">
-                    <p>Hello! My name is **Austin**. What is your name?</p>
-                </div>
-                <div data-role="assistant" class="message animated-border">
-                    <pre><code>print("Hello Austin, my name is StableLM.")</code></pre>
-                </div> -->
             </div>
         </div>
-        <!-- Input widget -->
+    </main>
+
+    <footer>
         <div class="container">
+            <!-- Input widget -->
             <div id="user-input">
                 <!-- Textarea input field -->
                 <div class="input-row">
                     <textarea id="user-prompt" class="input-field"
-                        placeholder="Type your message here..."></textarea>
+                        placeholder="Say something... anything!"></textarea>
                 </div>
                 <!-- Button group -->
                 <div class="button-row">
                     <button id="generate-completion">
                         <i class='bx bx-play'></i>
                         <p>Generate</p>
-                    </button>
-                    <button id="stop-completion">
-                        <i class='bx bx-stop'></i>
-                        <p>Stop</p>
                     </button>
                     <button id="regenerate-completion"
                         class="completion-button">
@@ -68,7 +61,7 @@
                 </div>
             </div>
         </div>
-    </main>
+    </footer>
 
     <!-- Remote Dependencies -->
     <script
