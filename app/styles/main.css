@@ -1,224 +1,282 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&display=swap');
+
+/* Special selectors */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: monospace;
 }
 
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ff00a0;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-track-piece {
+  border-radius: 10px;
+}
+
+/* Elements */
 body {
-    color: rgb(240, 240, 240);
-    background-color: rgb(30, 30, 30);
+  color: #f0f0f0;
+  background-color: #202020;
+}
+
+header,
+main,
+footer {
+  /* border: 1px solid rgb(0, 225, 255); */
+  border-radius: 5px;
+  width: 100%;
+}
+
+header {
+  position: fixed;
+  top: 0;
+  z-index: -1;
 }
 
 main {
-    margin: 10px 0;
-    padding: 10px 0;
-    /* border: 1px solid red; */
-    /* use border to debug */
+  margin: 5em 0 50% 0;
+  z-index: 0;
+}
+
+footer {
+  position: fixed;
+  bottom: 0;
+  z-index: 1;
+}
+
+nav {
+  background-color: #272727;
+  border-radius: 5px;
+  padding: 10px;
 }
 
 code {
-    background-color: rgb(30, 30, 30);
+  color: #e6c07b;
+  font-weight: 600;
+  font-style: italic;
 }
 
-div.container {
-    margin: 5px auto;
-    padding: 5px;
-    border: 1px solid rgba(255, 192, 203, 0.33);
-    background-color: rgb(40, 40, 40);
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    border-radius: 5px;
+a {
+  color: #e6c07b;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-position: under;
+  transition: all var(--duration) ease-in-out;
 }
 
-div#context-window {
-    display: flex;
-    flex-flow: column nowrap;
-    justify-content: center;
-}
-
-div.message {
-    margin: 10px;
-    padding: 10px;
-    background-color: rgba(50, 50, 50, 0.1);
-    border: 1px solid rgba(255, 192, 203, 0.1);
-    border-radius: 5px;
-}
-
-div.message:nth-child(2n) {
-    background-color: rgba(75, 75, 75, 0.2);
-    border: 1px solid rgba(255, 192, 203, 0.1);
-    border-radius: 5px;
-}
-
-div.message p {
-    margin: 5px;
-    padding: 5px;
-}
-
-div.message ul, div.message ol {
-    margin: 10px;
-    padding: 10px;
-}
-
-div.input-row {
-    display: flex;
-    justify-content: center;
+a:hover,
+a:focus,
+a:active {
+  color: rgb(180, 140, 70);
 }
 
 textarea {
-    color: rgb(240, 240, 240);
-    background-color: rgb(75, 75, 75);
+  color: rgb(240, 240, 240);
+  background-color: #272727;
 
-    width: 100%;
+  width: 100%;
+  height: 10em;
+  margin: 5px;
+  padding: 10px;
 
-    margin: 5px;
-    padding: 10px;
+  border: 1px solid #ff00a0;
+  /* widget has custom themed border color */
+  border-radius: 5px;
 
-    border: 1px solid rgba(255, 192, 203, 0.33);
-    /* widget has custom themed border color */
-    border-radius: 5px;
-
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    /* give widgets a hover-like effect */
-    /* make widgets feel smooth and responsive */
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+  /* give widgets a hover-like effect */
+  /* make widgets feel smooth and responsive */
 }
 
 textarea:hover {
-    border: 1px solid rgba(255, 255, 0, 0.33);
+  animation: colorCycle 1s infinite alternate;
 }
 
 textarea:focus,
 textarea:active {
-    outline: none !important;
-    border: 1px solid rgba(9, 255, 0, 0.33);
+  animation: none;
+  outline: none !important;
+  border: 1px solid #00ff00;
 }
 
+/* Unique id's */
+div#context-window {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  border-radius: 5px;
+}
+
+div#user-input {
+  background-color: #272727;
+  /* border: 1px solid #ff00a0; */
+  border-radius: 5px;
+}
+
+/* Classes */
+/* NOTE: The container is required to enable center alignment */
+div.container {
+  margin: 0 auto;
+  max-width: 50%;
+}
+
+div.message {
+  margin: 10px 0;
+  padding: 10px;
+  background-color: #303030;
+  border-radius: 5px;
+}
+
+div.message p {
+  margin: 5px;
+  padding: 5px;
+}
+
+div.message ul,
+div.message ol {
+  margin: 10px;
+  padding: 10px;
+}
+
+div.input-row {
+  display: flex;
+  justify-content: center;
+}
+
+/* Buttons */
 div.button-row {
-    display: flex;
-    flex-flow: row nowrap;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
 }
 
 button {
-    color: rgb(240, 240, 240);
-    margin: 5px 3px;
-    padding: 5px;
-    background-color: rgb(75, 75, 75);
-    transition: all 50ms ease-in-out;
-    border: 1px solid rgba(255, 192, 203, 0.33);
-    /* widget is pink by default */
-    border-radius: 5px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    transition: all 100ms ease-in-out;
-    /* make buttons feel responsive and snappy */
+  color: rgb(240, 240, 240);
+  margin: 5px 3px;
+  padding: 5px;
+  background-color: rgb(75, 75, 75);
+  transition: all 50ms ease-in-out;
+  border: 1px solid rgba(255, 192, 203, 0.33);
+  /* widget is pink by default */
+  border-radius: 5px;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+  transition: all 100ms ease-in-out;
+  /* make buttons feel responsive and snappy */
 }
 
 button:hover {
-    border: 1px solid rgba(255, 255, 0, 0.33);
-    /* widget is yellow on hover */
+  animation: colorCycle 1s infinite alternate;
+  border: 1px solid rgba(255, 255, 0, 0.33);
+  /* widget is yellow on hover */
 }
 
 button:active {
-    background-color: rgb(65, 65, 65);
-    border: 1px solid rgba(9, 255, 0, 0.33);
-    /* widget is green on active */
-    transform: scale(0.95);
-    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
+  animation: none;
+  background-color: #404040;
+  border: 1px solid #00ff00;
+  /* widget is green on active */
+  transform: scale(0.95);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
+/* Animations */
 div.animated-border-error {
-    border: 1px solid red; /* Or use a more attention-grabbing color */
-    border-radius: 5px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    animation: errorFlash 1s infinite alternate;
+  border: 1px solid red;
+  /* Or use a more attention-grabbing color */
+  border-radius: 5px;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+  animation: errorFlash 1s infinite alternate;
 }
 
 @keyframes errorFlash {
-    from { border-color: rgb(255, 120, 210); }
-    to { border-color: rgb(255, 0, 0); } /* Adjust colors as needed for visibility */
+  from {
+    border-color: rgb(255, 100, 200);
+  }
+
+  to {
+    border-color: rgb(255, 0, 0);
+  }
+
+  /* Adjust colors as needed for visibility */
 }
 
 div.animated-border {
-    border: 1px solid pink;
-    border-radius: 5px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    animation: colorCycle 1s infinite alternate;
-    /* Apply animation */
+  border: 1px solid #ff00a0;
+  border-radius: 5px;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+  animation: colorCycle 1s infinite alternate;
+  /* Apply animation */
 }
 
-/* Keyframes for color cycle animation */
 @keyframes colorCycle {
-    0% {
-        border: 1px solid rgb(255, 0, 0);
-        /* Start with red */
-    }
+  0% {
+    border: 1px solid #00aaff;
+  }
 
-    33% {
-        border: 1px solid rgb(247, 0, 255);
-        /* Use "hot pink" to balance out the transitions */
-    }
+  50% {
+    border: 1px solid #ffff00;
+  }
 
-    50% {
-        border: 1px solid rgb(0, 174, 255);
-        /* Middle out with a flat dark sky blue */
-    }
-
-    66% {
-        border: 1px solid rgb(136, 255, 0);
-        /* Use a flat lime green to generate a stark contrast */
-    }
-
-    100% {
-        border: 1px solid rgb(255, 255, 0);
-        /* Use yellow to balance out the transitions */
-    }
+  100% {
+    border: 1px solid #ff00a0;
+  }
 }
 
-/* static/styles/media.css */
-
+/* Responsive */
 @media (max-width: 7680px) {
-    div.container {
-        max-width: 30%;
-    }
+  div.container {
+    max-width: 30%;
+  }
 }
 
 @media (max-width: 3840px) {
-    div.container {
-        max-width: 35%;
-    }
+  div.container {
+    max-width: 35%;
+  }
 }
 
 @media (max-width: 1920px) {
-    div.container {
-        max-width: 40%;
-    }
+  div.container {
+    max-width: 40%;
+  }
 }
 
 @media (max-width: 1280px) {
-    div.container {
-        max-width: 50%;
-    }
+  div.container {
+    max-width: 50%;
+  }
 }
+
 @media (max-width: 1024px) {
-    div.container {
-        max-width: 65%;
-    }
+  div.container {
+    max-width: 65%;
+  }
 }
 
 @media (max-width: 720px) {
-    div.container {
-        max-width: 75%;
-    }
+  div.container {
+    max-width: 75%;
+  }
 }
 
 @media (max-width: 576px) {
-    div.container {
-        max-width: 85%;
-    }
+  div.container {
+    max-width: 85%;
+  }
 }
 
 @media (max-width: 480px) {
-    div.container {
-        max-width: 95%;
-    }
+  div.container {
+    max-width: 100%;
+  }
 }
