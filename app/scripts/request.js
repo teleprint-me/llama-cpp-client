@@ -69,12 +69,20 @@ function signalErrorState(element) {
 
 // Function to handle streamed tokens and update the UI in real-time
 async function handleStreamedTokens(assistantMessageDiv, initialPrompt) {
-  // Initialize a variable to hold the aggregated content
-  let aggregatedContent = initialPrompt;
+  const button = document.querySelector('button#generate-completion');
 
   try {
+    // update the button widget in the ui
+    button.querySelector('p').innerText = 'Stop';
+    button.querySelector('i').classList.remove('bx-play');
+    button.querySelector('i').classList.add('bx-stop');
+    button.removeEventListener('input', generateModelCompletion);
+
     const responseStream = await llamaCppRequest(parameters.prompt);
     const reader = responseStream.body.getReader();
+
+    // Initialize a variable to hold the aggregated content
+    let aggregatedContent = initialPrompt;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -97,7 +105,9 @@ async function handleStreamedTokens(assistantMessageDiv, initialPrompt) {
       });
 
       if (token.stop) {
-        console.log('Received stop token.');
+        console.log(
+          `Received stop token. Predicted ${token.tokens_predicted} tokens.`
+        );
         break; // Exit the loop on receiving stop token
       }
     }
@@ -107,6 +117,10 @@ async function handleStreamedTokens(assistantMessageDiv, initialPrompt) {
   } finally {
     // Ensure the animation is stopped regardless of how the loop exits
     assistantMessageDiv.classList.remove('animated-border');
+    // restore original button widget in the ui
+    button.querySelector('p').innerText = 'Generate';
+    button.querySelector('i').classList.remove('bx-stop');
+    button.querySelector('i').classList.add('bx-play');
   }
 }
 
