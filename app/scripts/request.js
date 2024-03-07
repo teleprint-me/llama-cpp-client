@@ -103,6 +103,8 @@ async function handleStreamedTokens(assistantMessageDiv, initialPrompt) {
       assistantMessageDiv.querySelectorAll('pre code').forEach((block) => {
         hljs.highlightBlock(block);
       });
+      // Render LaTeX dynamically
+      MathJax.typesetPromise();
 
       if (token.stop) {
         console.log(

@@ -27,6 +27,15 @@ function setup() {
     langPrefix: 'hljs language-' // Use 'hljs' class prefix for compatibility with highlight.js CSS
   });
 
+  MathJax = {
+    tex: {
+      inlineMath: [
+        ['$', '$'],
+        ['\\(', '\\)']
+      ]
+    }
+  };
+
   hljs.highlightAll(); // initial code highlighting, if any
 
   window.addEventListener('load', modelGreetsUser);
