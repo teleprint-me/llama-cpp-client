@@ -1,5 +1,17 @@
 // main.js
 
+function modelGreetsUser(event) {
+  const contextWindow = document.querySelector('div#context-window');
+  if (contextWindow.children.length === 0) {
+    const prompt = 'As a state of the art large language model, I';
+    const completion = createCompletion('assistant', prompt);
+    console.log(completion);
+    contextWindow.appendChild(completion);
+    parameters.prompt = prompt;
+    handleStreamedTokens(completion, prompt);
+  }
+}
+
 // Initialization function to setup event listeners
 function setup() {
   // Handle user input on button click
@@ -16,6 +28,8 @@ function setup() {
   });
 
   hljs.highlightAll(); // initial code highlighting, if any
+
+  window.addEventListener('load', modelGreetsUser);
 }
 
 setup();
