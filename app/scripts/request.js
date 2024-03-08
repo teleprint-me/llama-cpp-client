@@ -22,7 +22,7 @@ const parameters = {
 // Make a RESTful API request
 async function llamaCppRequest(prompt) {
   parameters.prompt = prompt;
-  const response = await fetch('http://127.0.0.1:8080/completion', {
+  const response = await fetch('http://127.0.0.1:8080/v1/completions', {
     method: 'POST',
     body: JSON.stringify(parameters),
     headers: { 'Content-Type': 'application/json' }
@@ -103,8 +103,15 @@ async function handleStreamedTokens(assistantMessageDiv, initialPrompt) {
       assistantMessageDiv.querySelectorAll('pre code').forEach((block) => {
         hljs.highlightBlock(block);
       });
-      // Render LaTeX dynamically
-      MathJax.typesetPromise();
+
+      try {
+        // Try to render LaTeX dynamically
+        // Still unsure why this doesn't execute consistently
+        MathJax.typesetPromise();
+      } catch (e) {
+        // Still attempting to debug why this happens.
+        console.log('Error rendering LaTeX with MathJax:', e);
+      }
 
       if (token.stop) {
         console.log(

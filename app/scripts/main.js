@@ -3,7 +3,7 @@
 function modelGreetsUser(event) {
   const contextWindow = document.querySelector('div#context-window');
   if (contextWindow.children.length === 0) {
-    const prompt = 'As a state of the art large language model, I';
+    const prompt = 'Todays fun math fact is';
     const completion = createCompletion('assistant', prompt);
     console.log(completion);
     contextWindow.appendChild(completion);
@@ -31,7 +31,8 @@ function setup() {
     tex: {
       inlineMath: [
         ['$', '$'],
-        ['\\(', '\\)']
+        ['\\(', '\\)'],
+        ['[', ']']
       ]
     }
   };
@@ -41,4 +42,5 @@ function setup() {
   window.addEventListener('load', modelGreetsUser);
 }
 
+console.log('llama-cpp-client', 'v1', 'prototype');
 setup();
