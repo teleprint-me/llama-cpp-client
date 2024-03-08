@@ -1,11 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
 
 /* Special selectors */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: monospace;
+  font-family: 'Fira Mono', Courier, 'DejaVu Sans Mono', 'Droid Sans Mono',
+    monospace;
 }
 
 ::-webkit-scrollbar {
@@ -26,6 +27,10 @@
 body {
   color: #f0f0f0;
   background-color: #202020;
+}
+
+p {
+  font-size: 1em;
 }
 
 header,
@@ -59,14 +64,21 @@ nav {
   padding: 10px;
 }
 
-code {
+pre {
+  background-color: #282c34;
+  border-radius: 10px;
+  overflow: scroll;
+}
+
+pre > code {
   color: #e6c07b;
   font-weight: 600;
   font-style: italic;
 }
 
 a {
-  color: #e6c07b;
+  color: #ffff00;
+
   cursor: pointer;
   text-decoration: underline;
   text-underline-position: under;
@@ -76,7 +88,7 @@ a {
 a:hover,
 a:focus,
 a:active {
-  color: rgb(180, 140, 70);
+  color: #ff00a0;
 }
 
 textarea {
@@ -131,14 +143,14 @@ div.container {
 
 div.message {
   margin: 10px 0;
-  padding: 10px;
+  padding: 2em;
   background-color: #303030;
   border-radius: 5px;
 }
 
 div.message p {
-  margin: 5px;
-  padding: 5px;
+  margin: 10px;
+  padding: 10px;
 }
 
 div.message ul,
