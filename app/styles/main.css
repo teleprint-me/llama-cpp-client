@@ -1,12 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap');
 
 /* Special selectors */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Fira Mono', Courier, 'DejaVu Sans Mono', 'Droid Sans Mono',
-    monospace;
+  font-family: 'Source Code Pro', 'Droid Sans Mono', monospace;
 }
 
 ::-webkit-scrollbar {
@@ -27,10 +26,7 @@
 body {
   color: #f0f0f0;
   background-color: #202020;
-}
-
-p {
-  font-size: 1em;
+  font-size: 0.875em;
 }
 
 header,
@@ -48,7 +44,7 @@ header {
 }
 
 main {
-  margin: 5em 0 50% 0;
+  margin: 5em 0 90% 0;
   z-index: 0;
 }
 
@@ -70,10 +66,10 @@ pre {
   overflow: scroll;
 }
 
-pre > code {
+code {
   color: #e6c07b;
   font-weight: 600;
-  font-style: italic;
+  /* font-style: italic; */
 }
 
 a {
@@ -82,13 +78,18 @@ a {
   cursor: pointer;
   text-decoration: underline;
   text-underline-position: under;
-  transition: all var(--duration) ease-in-out;
+  transition: all 250ms ease-in-out;
 }
 
 a:hover,
 a:focus,
 a:active {
   color: #ff00a0;
+}
+
+p {
+  margin: 10px;
+  padding: 10px;
 }
 
 textarea {
@@ -100,7 +101,7 @@ textarea {
   margin: 5px;
   padding: 10px;
 
-  border: 1px solid #ff00a0;
+  border: 1px solid #7a7a7a;
   /* widget has custom themed border color */
   border-radius: 5px;
 
@@ -110,7 +111,7 @@ textarea {
 }
 
 textarea:hover {
-  animation: colorCycle 1s infinite alternate;
+  animation: borderColorCycle 1s infinite alternate;
 }
 
 textarea:focus,
@@ -148,11 +149,6 @@ div.message {
   border-radius: 5px;
 }
 
-div.message p {
-  margin: 10px;
-  padding: 10px;
-}
-
 div.message ul,
 div.message ol {
   margin: 10px;
@@ -174,7 +170,7 @@ div.button-row {
 
 button {
   color: rgb(240, 240, 240);
-  margin: 5px 3px;
+  margin: 5px 5px;
   padding: 5px;
   background-color: rgb(75, 75, 75);
   transition: all 50ms ease-in-out;
@@ -186,8 +182,13 @@ button {
   /* make buttons feel responsive and snappy */
 }
 
+button p {
+  margin: 5px;
+  padding: 0;
+}
+
 button:hover {
-  animation: colorCycle 1s infinite alternate;
+  animation: borderColorCycle 1s infinite alternate;
   border: 1px solid rgba(255, 255, 0, 0.33);
   /* widget is yellow on hover */
 }
@@ -226,11 +227,11 @@ div.animated-border {
   border: 1px solid #ff00a0;
   border-radius: 5px;
   box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-  animation: colorCycle 1s infinite alternate;
+  animation: borderColorCycle 1s infinite alternate;
   /* Apply animation */
 }
 
-@keyframes colorCycle {
+@keyframes borderColorCycle {
   0% {
     border: 1px solid #00aaff;
   }
