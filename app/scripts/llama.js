@@ -167,5 +167,35 @@ class LlamaClient {
   }
 }
 
+// Initialize Llama client
 let llama = new LlamaClient();
 llama.setup();
+
+// Configure marked.js with highlight.js for code syntax highlighting
+marked.setOptions({
+  highlight: function (code, lang) {
+    // Function to handle code syntax highlighting using highlight.js
+    // Get the language if available, otherwise set it as plain text
+    const language = highlight.getLanguage(lang) ? lang : 'plaintext';
+    // Apply highlighting and get the highlighted code
+    return highlight.highlight(code, { language }).value;
+  },
+  // Use 'hljs' class prefix for compatibility with highlight.js CSS
+  langPrefix: 'hljs language-'
+});
+
+// Initialize MathJax for rendering math equations
+MathJax = {
+  tex: {
+    inlineMath: [
+      ['$', '$'], // Dollar signs for inline math
+      ['\\(', '\\)'], // Parentheses for display math
+      ['[', ']'] // Brackets for display math (alternative to parentheses)
+    ]
+  }
+};
+
+// Highlight all the code snippets in the document
+hljs.highlightAll(); // Initial code highlighting, if any
+
+console.log('Successfully initialized llama.cpp client <3');
