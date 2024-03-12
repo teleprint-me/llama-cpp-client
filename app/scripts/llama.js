@@ -158,6 +158,9 @@ class LlamaAPI {
 
 class LlamaClient {
   constructor() {
+    this.name = 'llama-cpp-client';
+    this.version = 'v1';
+    this.state = 'prototype';
     this.setup();
   }
 
@@ -170,6 +173,8 @@ class LlamaClient {
 // Initialize Llama client
 let llama = new LlamaClient();
 llama.setup();
+console.log(llama.name, llama.version, llama.state);
+console.log('Successfully initialized llama.js');
 
 // Configure marked.js with highlight.js for code syntax highlighting
 marked.setOptions({
@@ -183,6 +188,7 @@ marked.setOptions({
   // Use 'hljs' class prefix for compatibility with highlight.js CSS
   langPrefix: 'hljs language-'
 });
+console.log('Successfully initialized marked.js');
 
 // Initialize MathJax for rendering math equations
 MathJax = {
@@ -194,8 +200,8 @@ MathJax = {
     ]
   }
 };
+console.log('Successfully initialized mathjax');
 
 // Highlight all the code snippets in the document
 hljs.highlightAll(); // Initial code highlighting, if any
-
-console.log('Successfully initialized llama.cpp client <3');
+console.log('Successfully initialized highlight.js');
