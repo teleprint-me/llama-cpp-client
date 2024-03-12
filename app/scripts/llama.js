@@ -144,7 +144,7 @@ class LlamaAPI {
     // has a role and content where role is one of system,
     // assistant, or user
     this.parameters.messages = messages;
-    throw Error('Not implemented');
+    return this.request.get('/v1/chat/completions', this.parameters);
   }
 
   async streamChatCompletions(...messages) {
@@ -152,7 +152,7 @@ class LlamaAPI {
     // has a role and content where role is one of system,
     // assistant, or user
     this.parameters.messages = messages;
-    throw Error('Not implemented'); // TODO
+    return this.request.stream('/v1/chat/completions', this.parameters);
   }
 }
 
