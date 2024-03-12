@@ -93,3 +93,42 @@ class LlamaRequest {
     }
   }
 }
+
+class LlamaClient {
+  constructor(llamaRequest, ...parameters) {
+    this.request = llamaRequest;
+
+    // These parameters will be set by the user once the UI/UX is implemented.
+    // Note: The /v1/chat/completions endpoint uses ChatML messaging structure.
+    // Default parameters to enable basic functionality.
+    this.parameters = {
+      stream: true, // Optional: Get tokens as they're generated.
+      cache_prompt: true, // Optional: Enhance model response times.
+      seed: 1337, // Useful for testing; can be set to null in production.
+      prompt: '', // Optional: For the /completion endpoint.
+      messages: [], // Optional: For the /v1/chat/completions endpoint.
+      top_k: 50, // Top-k parameter for token sampling.
+      top_p: 0.9, // Top-p (nucleus) parameter for token sampling.
+      min_p: 0.1, // Minimum probability threshold for token sampling.
+      temperature: 0.7, // Temperature parameter for token sampling.
+      presence_penalty: 0.0, // Presence penalty parameter for token sampling.
+      frequency_penalty: 0.0, // Frequency penalty parameter for token sampling.
+      repeat_penalty: 1.1, // Repeat penalty parameter for token sampling.
+      n_predict: -1 // -1 allows the model to choose when to stop prediction.
+    };
+  }
+
+  async getServerHealth() {
+    try {
+      const response = await fetch('http://127.0.0.1:8080/health', {
+        method: 'GET'
+      });
+      if (!response.ok) {
+        throw Error(`Response is not ok with status code ${response.status}`);
+      }
+      return response.json();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+}
