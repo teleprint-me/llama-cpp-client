@@ -127,32 +127,26 @@ class LlamaAPI {
     return this.request.get('/slots');
   }
 
-  async getCompletions(prompt) {
+  async getCompletions(prompt, stream = false) {
     // NOTE: prompt can be a string or an array of strings
     this.parameters.prompt = prompt;
-    return this.request.get('/v1/completions', this.parameters);
+    if (stream) {
+      return this.request.stream('/v1/completions', this.parameters);
+    } else {
+      return this.request.get('/v1/completions', this.parameters);
+    }
   }
 
-  async streamCompletions(prompt) {
-    // NOTE: prompt can be a string or an array of strings
-    this.parameters.prompt = prompt;
-    return this.request.stream('/v1/completions', this.parameters);
-  }
-
-  async getChatCompletions(...messages) {
+  async getChatCompletions(messages, stream = false) {
     // NOTE: messages is an array of objects where each object
     // has a role and content where role is one of system,
     // assistant, or user
     this.parameters.messages = messages;
-    return this.request.get('/v1/chat/completions', this.parameters);
-  }
-
-  async streamChatCompletions(...messages) {
-    // NOTE: messages is an array of objects where each object
-    // has a role and content where role is one of system,
-    // assistant, or user
-    this.parameters.messages = messages;
-    return this.request.stream('/v1/chat/completions', this.parameters);
+    if (stream) {
+      return this.request.stream('/v1/chat/completions', this.parameters);
+    } else {
+      return this.request.get('/v1/chat/completions', this.parameters);
+    }
   }
 }
 
