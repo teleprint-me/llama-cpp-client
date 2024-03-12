@@ -167,5 +167,5 @@ class LlamaClient {
   }
 }
 
-let llama = new LlamaJS();
+let llama = new LlamaClient();
 llama.setup();
