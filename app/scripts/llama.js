@@ -13,6 +13,7 @@ class LlamaRequest {
     let response = null;
     let headers = this.headers;
 
+    // !IMPORTANT: GET requests cannot have a body!
     if (method === 'GET') {
       response = await fetch(url, {
         method: method,
@@ -31,7 +32,7 @@ class LlamaRequest {
 
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return response;
+    return response.json();
   }
 
   async get(endpoint, requestData) {
@@ -94,14 +95,14 @@ class LlamaRequest {
   }
 }
 
-class LlamaClient {
-  constructor(llamaRequest, ...parameters) {
+class LlamaAPI {
+  constructor(llamaRequest, parameters = null) {
     this.request = llamaRequest;
 
     // These parameters will be set by the user once the UI/UX is implemented.
     // Note: The /v1/chat/completions endpoint uses ChatML messaging structure.
     // Default parameters to enable basic functionality.
-    this.parameters = {
+    this.parameters = parameters || {
       stream: true, // Optional: Get tokens as they're generated.
       cache_prompt: true, // Optional: Enhance model response times.
       seed: 1337, // Useful for testing; can be set to null in production.
@@ -118,17 +119,53 @@ class LlamaClient {
     };
   }
 
-  async getServerHealth() {
-    try {
-      const response = await fetch('http://127.0.0.1:8080/health', {
-        method: 'GET'
-      });
-      if (!response.ok) {
-        throw Error(`Response is not ok with status code ${response.status}`);
-      }
-      return response.json();
-    } catch (e) {
-      console.error(e);
-    }
+  async getHealth() {
+    return this.request.get('/health');
+  }
+
+  async getSlots() {
+    return this.request.get('/slots');
+  }
+
+  async getCompletions(prompt) {
+    // NOTE: prompt can be a string or an array of strings
+    this.parameters.prompt = prompt;
+    return this.request.get('/v1/completions', this.parameters);
+  }
+
+  async streamCompletions(prompt) {
+    // NOTE: prompt can be a string or an array of strings
+    this.parameters.prompt = prompt;
+    return this.request.stream('/v1/completions', this.parameters);
+  }
+
+  async getChatCompletions(...messages) {
+    // NOTE: messages is an array of objects where each object
+    // has a role and content where role is one of system,
+    // assistant, or user
+    this.parameters.messages = messages;
+    throw Error('Not implemented');
+  }
+
+  async streamChatCompletions(...messages) {
+    // NOTE: messages is an array of objects where each object
+    // has a role and content where role is one of system,
+    // assistant, or user
+    this.parameters.messages = messages;
+    throw Error('Not implemented'); // TODO
   }
 }
+
+class LlamaClient {
+  constructor() {
+    this.setup();
+  }
+
+  setup() {
+    this.request = new LlamaRequest();
+    this.client = new LlamaAPI(this.request);
+  }
+}
+
+let llama = new LlamaJS();
+llama.setup();
