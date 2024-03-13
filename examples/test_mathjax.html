@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Meta tags and other head content here -->
+    <title>MathJax Test</title>
+  </head>
+  <body>
+    <div id="math-container"></div>
+
+    <!-- mathjax -->
+    <!-- 
+      !!!IMPORTANT!!!
+      --
+      DO NOT SET A TYPE ON THE SCRIPT TAG(S) FOR MATHJAX
+      --
+      Configuration must be set _before_ loading MathJax from the CDN
+      --
+      If it is set _after_ loading MathJax from the CDN, the MathJax object is overridden and the classes, methods, and props become undefined as a result
+    -->
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [
+            ['$', '$'],
+            ['\\(', '\\)']
+          ],
+          processEscapes: true
+        }
+      };
+      console.log('Set mathjax initial props');
+    </script>
+    <!--
+      See the following links for more information:
+      - https://docs.mathjax.org/en/v3.0-latest/input/tex/delimiters.html#tex-delimiters
+      - https://docs.mathjax.org/en/v3.0-latest/options/input/tex.html#tex-options
+    -->
+
+    <!-- Enable Older Browsers -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <!-- Enable Inline and Block Level Rendering-->
+    <script
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+      id="MathJax-script"
+    ></script>
+    <!-- Enable ASCII Rendering -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/input/asciimath.js"
+      charset="UTF-8"
+    ></script>
+
+    <script>
+      window.onload = function () {
+        const mathContainer = document.getElementById('math-container');
+
+        // Test inline math expression
+        MathJax.typesetPromise().then(() => {
+          mathContainer.innerHTML += '$a^2+b^2=c^2$';
+          MathJax.typesetPromise();
+        });
+
+        // Test block math expression
+        MathJax.typesetPromise().then(() => {
+          mathContainer.innerHTML += ' $$\\frac{a}{1-a^2}$$';
+          MathJax.typesetPromise();
+        });
+      };
+    </script>
+  </body>
+</html>
