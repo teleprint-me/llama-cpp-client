@@ -83,11 +83,44 @@
     ></script>
 
     <!-- mathjax -->
+    <!-- 
+      !!!IMPORTANT!!!
+      --
+      DO NOT SET A TYPE ON THE SCRIPT TAG(S) FOR MATHJAX
+      --
+      Configuration must be set _before_ loading MathJax from the CDN
+      --
+      If it is set _after_ loading MathJax from the CDN, the MathJax object is overridden and the classes, methods, and props become undefined as a result
+    -->
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [
+            ['$', '$'],
+            ['\\(', '\\)']
+          ],
+          processEscapes: true
+        },
+        svg: {
+          fontCache: 'global'
+        }
+      };
+      console.log('Set mathjax initial props');
+    </script>
+    <!--
+      See the following links for more information:
+      - https://docs.mathjax.org/en/v3.0-latest/input/tex/delimiters.html#tex-delimiters
+      - https://docs.mathjax.org/en/v3.0-latest/options/input/tex.html#tex-options
+    -->
+
+    <!-- Enable Older Browsers -->
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <!-- Enable Inline and Block Level Rendering-->
     <script
       src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
       id="MathJax-script"
     ></script>
+    <!-- Enable ASCII Rendering -->
     <script
       src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/input/asciimath.js"
       charset="UTF-8"

@@ -338,17 +338,4 @@ document.addEventListener('DOMContentLoaded', function () {
   // Highlight all the code snippets in the document
   hljs.highlightAll(); // Initial code highlighting, if any
   console.log('Successfully initialized highlight.js');
-
-  // Initialize MathJax for rendering math equations
-  MathJax.tex = {
-    inlineMath: [
-      ['$', '$'], // Dollar signs for inline math
-      ['\\(', '\\)'], // Parentheses for display math
-      ['[', ']'] // Brackets for display math (alternative to parentheses)
-    ]
-  };
-  MathJax.svg = {
-    fontCache: 'global'
-  };
-  console.log('Successfully initialized mathjax');
 });
