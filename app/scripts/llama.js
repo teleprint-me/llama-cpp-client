@@ -96,8 +96,8 @@ class LlamaRequest {
 }
 
 class LlamaAPI {
-  constructor(llamaRequest, parameters = null) {
-    this.request = llamaRequest;
+  constructor(llamaRequest = null, parameters = null) {
+    this.request = llamaRequest || LlamaRequest();
 
     // These parameters will be set by the user once the UI/UX is implemented.
     // Note: The /v1/chat/completions endpoint uses ChatML messaging structure.
@@ -127,26 +127,40 @@ class LlamaAPI {
     return this.request.get('/slots');
   }
 
-  async getCompletions(prompt, stream = false) {
+  async getCompletions(prompt, callback = null, stream = false) {
     // NOTE: prompt can be a string or an array of strings
     this.parameters.prompt = prompt;
     if (stream) {
-      return this.request.stream('/v1/completions', this.parameters);
+      return this.request.stream('/v1/completions', this.parameters, callback);
     } else {
       return this.request.get('/v1/completions', this.parameters);
     }
   }
 
-  async getChatCompletions(messages, stream = false) {
+  async getChatCompletions(messages, callback = null, stream = false) {
     // NOTE: messages is an array of objects where each object
     // has a role and content where role is one of system,
     // assistant, or user
     this.parameters.messages = messages;
     if (stream) {
-      return this.request.stream('/v1/chat/completions', this.parameters);
+      return this.request.stream(
+        '/v1/chat/completions',
+        this.parameters,
+        callback
+      );
     } else {
       return this.request.get('/v1/chat/completions', this.parameters);
     }
+  }
+}
+
+class LlamaCompletions {
+  constructor() {
+    this.setup();
+  }
+
+  setup() {
+    this.ui();
   }
 }
 
@@ -161,6 +175,7 @@ class LlamaClient {
   setup() {
     this.request = new LlamaRequest();
     this.client = new LlamaAPI(this.request);
+    this.completions = new LlamaCompletions();
   }
 }
 
