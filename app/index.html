@@ -33,6 +33,9 @@
       <div class="container">
         <div id="context-window"></div>
       </div>
+      <div class="container hidden">
+        <div id="model-parameters"></div>
+      </div>
     </main>
 
     <footer>
@@ -67,20 +70,30 @@
     </footer>
 
     <!-- Remote Dependencies -->
-    <!-- mathjax -->
-    <script
-      id="MathJax-script"
-      async
-      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
-    ></script>
-    <!-- highlight -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <!-- marked -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"
+      defer
+    ></script>
+
+    <!-- highlight -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"
+      defer
+    ></script>
+
+    <!-- mathjax -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+      id="MathJax-script"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/input/asciimath.js"
+      charset="UTF-8"
+    ></script>
 
     <!-- Local Dependencies -->
-    <script src="scripts/context.js"></script>
-    <script src="scripts/request.js"></script>
-    <script src="scripts/main.js"></script>
+    <script src="scripts/llama.js" defer></script>
   </body>
 </html>
