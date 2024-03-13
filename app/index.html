@@ -100,10 +100,11 @@
             ['\\(', '\\)']
           ],
           processEscapes: true
-        },
-        svg: {
-          fontCache: 'global'
         }
+        // Using svg prop causes a TypeError
+        // svg: {
+        //   fontCache: 'global'
+        // }
       };
       console.log('Set mathjax initial props');
     </script>

@@ -261,16 +261,32 @@ class LlamaCompletions {
             );
             return true; // no content left to extract
           }
+
+          // Log the token.content result to the console
           console.log('got token', token.content);
+          // Update the prompt
           prompt += token.content;
+
           // Update the context window with the generated completion
           completionDiv.innerHTML = marked.parse(prompt);
+
           // Need to update to highlight all code blocks within the element
           completionDiv.querySelectorAll('pre code').forEach((block) => {
             hljs.highlightBlock(block);
           });
-          MathJax.typesetPromise();
-          return false; // continue processing
+
+          // Rerender the LaTex type setting
+          MathJax.typesetPromise(); // DO NOT WRAP THIS
+          /* The MathJax documentation recommends wrapping this in itself.
+           *
+           * I avoid wrapping the update on each cycle because wrapping
+           * the promise in a promise causes a performance hit,
+           * affects the UI as it renders, and causes issues with scrolling and more.
+           *
+           * Source: https://docs.mathjax.org/en/latest/web/typeset.html#handling-asynchronous-typesetting
+           */
+
+          return false; // continue processing model output
         },
         true // enable streaming
       );
