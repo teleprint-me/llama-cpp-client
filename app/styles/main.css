@@ -213,7 +213,7 @@ div.animated-border-error {
 
 @keyframes errorFlash {
   from {
-    border-color: rgb(255, 100, 200);
+    border-color: rgb(255, 150, 200);
   }
 
   to {
