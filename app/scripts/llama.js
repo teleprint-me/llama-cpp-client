@@ -155,12 +155,90 @@ class LlamaAPI {
 }
 
 class LlamaCompletions {
-  constructor() {
-    this.setup();
+  constructor(llamaRequest = null, parameters = null) {
+    this.completions = []; // track raw completions
+
+    this.client = new LlamaAPI(llamaRequest || new LlamaRequest(), parameters);
+
+    // context window has formatted completions
+    this.contextWindow = document.querySelector('div#context-window');
+
+    this.userPrompt = document.querySelector('textarea#user-prompt');
+
+    this.generateButton = document.querySelector('button#generate-completion');
+    this.regenerateButton = document.querySelector(
+      'button#regenerate-completion'
+    );
+    this.parametersButton = document.querySelector('button#model-parameters');
+
+    this.setupListeners();
   }
 
-  setup() {
-    this.ui();
+  setupListeners() {
+    // Add event listener to the generate button
+    this.generateButton.addEventListener(
+      'click',
+      this.handleGenerateCompletion.bind(this)
+    );
+    this.regenerateButton.addEventListener(
+      'click',
+      this.handleRegenerateCompletion.bind(this)
+    );
+    this.parametersButton.addEventListener(
+      'click',
+      this.handleModelParameters.bind(this)
+    );
+  }
+
+  /**
+   * Creates a message element for the completion interface.
+   * @param {string} content - The content of the message.
+   * @returns {HTMLElement} The created message element.
+   */
+  createCompletion(prompt = null) {
+    // Create a new <div> element
+    let div = document.createElement('div');
+    // Set the role attribute as metadata
+    div.setAttribute('data-role', 'completion');
+    // Add the "message" class to the element
+    div.classList.add('message');
+    // Add animation during generation
+    div.classList.add('animated-border');
+    // Set the prompt for the completion, if provided
+    if (prompt !== null) {
+      // Set inner HTML content allowing for automated formatting
+      div.innerHTML = marked.parse(prompt);
+    }
+    // Return the created message element
+    return div; // this is added to contextWindow
+  }
+
+  async handleGenerateCompletion(event) {
+    const prompt = this.userPrompt.value;
+    const completionDiv = this.createCompletion(prompt);
+
+    this.generateButton.querySelector('p').innerText = 'Stop';
+    this.generateButton.querySelector('i').classList.remove('bx-play');
+    this.generateButton.querySelector('i').classList.add('bx-stop');
+    try {
+      const promise = await this.client.getCompletions(
+        this.userPrompt.value, // prompt
+        function (token, requestData) {
+          // callback
+          return false; // because we're not doing anything yet
+        },
+        true // stream
+      );
+      // Update the context window with the generated completion
+    } catch (error) {
+    } finally {
+      // Ensure the animation is stopped regardless of how the loop exits
+      completionDiv.classList.remove('animated-border');
+      // restore original button widget in the ui
+      this.generateButton.querySelector('p').innerText = 'Generate';
+      this.generateButton.querySelector('i').classList.remove('bx-stop');
+      this.generateButton.querySelector('i').classList.add('bx-play');
+    }
   }
 }
 
