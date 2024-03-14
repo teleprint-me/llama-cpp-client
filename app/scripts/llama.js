@@ -165,7 +165,7 @@ class LlamaAPI {
 
 class LlamaCompletions {
   constructor(llamaRequest = null, parameters = null) {
-    this.completions = []; // track raw completions
+    this.history = []; // track raw completions
 
     this.llamaAPI = new LlamaAPI(
       llamaRequest || new LlamaRequest(),
@@ -306,7 +306,7 @@ class LlamaCompletions {
         },
         true // enable streaming
       );
-      this.completions.push(prompt);
+      this.history.push(prompt);
     } catch (error) {
       console.error('Failed to read stream:', error);
       this._signalErrorState(completionDiv);
