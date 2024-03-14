@@ -2,53 +2,75 @@
 
 ## Description
 
-The llama.cpp client is a Python wrapper for interacting with llama.cpp, a powerful tool for natural language processing and conversation generation. This client enables seamless communication with the llama.cpp server, making it easy to integrate llama.cpp's capabilities into your Python applications.
+The `llama.cpp` client is a experimental front-end web app for interacting with
+`llama.cpp`, a powerful tool for natural language processing and text
+generation. This client enables seamless communication with the `llama.cpp`
+server, making it easy to integrate and interact with `llama.cpp`'s
+capabilities.
 
 ## Features
 
-- Connect to llama.cpp server for text generation and conversation.
-- Utilize predefined grammars for precise text generation.
-- Define custom grammars to guide model behavior.
-- Interact with the llama.cpp server using simple Python functions.
-- Access function schemas for enabling function calls during conversations.
+- [ ] Interact with the `llama.cpp` server using a simple web ui.
+- [ ] Connect to `llama.cpp` server for text generation and conversation.
+- [ ] Utilize predefined grammars for precise text generation.
+- [ ] Define custom grammars to guide model behavior.
+- [ ] Access function schemas for enabling function calls during interactions.
 
 ## Getting Started
 
-To get started with the llama.cpp client, follow these steps:
+To get started with the `llama.cpp` client, follow these steps:
 
-1. [Install llama.cpp server](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md) on your local machine or server.
-2. Install the llama.cpp client Python package using pip:
+1. **Clone the repositories**: Use Git to clone both the `llama-cpp-client` and
+   `llama.cpp` repositories onto your local machine or server.
 
    ```sh
-   pip install llama-cpp-client
+   git clone https://github.com/teleprint-me/llama-cpp-client
+   cd llama-cpp-client
+   git clone https://github.com/ggerganov/llama.cpp
+   cd llama.cpp
    ```
 
-3. Create a connection to the llama.cpp server and start generating text or engaging in conversations with the model.
+   Note that `git` will ignore the `llama.cpp` repository.
 
-```python
-from llama_cpp_client.client import LlamaCppClient
+2. **Build and install `llama.cpp`**: Use the provided instructions to build and
+   install `llama.cpp`. For example, you can use CMake to build the library with
+   CUBLAS support.
 
-# Create a client instance
-client = LlamaCppClient(host="http://127.0.0.1", port="8080")
+   ```sh
+   make LLAMA_CUBLAS=1  # Alternatively, you can use LLAMA_VULKAN=1
+   ```
 
-# Generate text
-response = client.generate_text(prompt="Tell me a story about space exploration.")
-print(response)
+3. **Run the `llama.cpp` server**: Use the provided instructions to run the
+   `llama.cpp`
+   [server](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md)
+   with your chosen model and configuration settings.
 
-# Engage in a conversation
-conversation = ["Hello, how are you?", "I'm good, thanks. How about you?"]
-response = client.generate_conversation(conversation)
-print(response)
-```
+   ```sh
+   ./llama.cpp/server -m [model path here] --ctx-size [int] --n-gpu-layers [int] --path app
+   ```
+
+   Note that you can extend the front end by running the server binary with
+   `--path`.
+
+4. **Access the web UI**: Open your preferred web browser and visit
+   `localhost:8080` to access the `llama.cpp` client's web UI. From here, you
+   can interact with the `llama.cpp` server for text generation and
+   conversation.
+
+By following these steps, you should be able to get started with the `llama.cpp`
+client and begin exploring its capabilities. For more detailed documentation and
+examples, please refer to the `llama-cpp-client` documentation.
 
 ## Documentation
 
-For detailed documentation and examples, please refer to the [llama.cpp client documentation](/docs).
+Refer to the [llama.cpp client documentation](/docs) for detailed documentation
+and examples.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details.
+This project is licensed under the [MIT License](LICENSE.md).
 
 ## Acknowledgments
 
-- The llama.cpp team for developing an incredible natural language processing tool.
+- The `llama.cpp` team for developing an incredible natural language processing
+  tool.
