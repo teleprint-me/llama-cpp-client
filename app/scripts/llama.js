@@ -92,7 +92,7 @@ class LlamaRequest {
       }
 
       const token = this._processStreamValue(value);
-      endStream = callback(token);
+      endStream = await callback(token);
 
       if (endStream) {
         console.log(
@@ -247,18 +247,32 @@ class LlamaCompletions {
   async handleGenerateCompletion(completionDiv, prompt) {
     console.log('using prompt to handle generating completion');
     try {
+      // Used to hold chain of typesetting calls
+      let promiseFormattedCompletion = Promise.resolve();
+
+      function typesetAndFormat(callback) {
+        promiseFormattedCompletion = promiseFormattedCompletion.then(() => {
+          MathJax.typesetPromise(callback()).catch((error) =>
+            console.error('Typeset failed', error)
+          );
+        });
+        return promiseFormattedCompletion;
+      }
+      /* The MathJax documentation recommends chaining promises.
+       *
+       * Source: https://docs.mathjax.org/en/latest/web/typeset.html#handling-asynchronous-typesetting
+       */
+
       // Toggle the generate button
       this._toggleGenerateStop();
+
       // Request the model completion
-      const promise = await this.llamaAPI.getCompletions(
+      await this.llamaAPI.getCompletions(
         prompt, // prompt
         // use lambda to avoid 'this' conflicts
-        function (token) {
+        async function (token) {
           // callback handles the models completion
           if (token.stop) {
-            console.log(
-              `Received stop token. Predicted ${token.tokens_predicted} tokens.`
-            );
             return true; // no content left to extract
           }
 
@@ -275,16 +289,18 @@ class LlamaCompletions {
             hljs.highlightBlock(block);
           });
 
-          // Rerender the LaTex type setting
-          MathJax.typesetPromise(); // DO NOT WRAP THIS
-          /* The MathJax documentation recommends wrapping this in itself.
-           *
-           * I avoid wrapping the update on each cycle because wrapping
-           * the promise in a promise causes a performance hit,
-           * affects the UI as it renders, and causes issues with scrolling and more.
-           *
-           * Source: https://docs.mathjax.org/en/latest/web/typeset.html#handling-asynchronous-typesetting
-           */
+          try {
+            // Dynamically render LaTex typesetting
+            await typesetAndFormat(() => {
+              // Format the content using marked.parse() and hljs.highlightBlock()
+              completionDiv.innerHTML = marked.parse(prompt);
+              completionDiv.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightBlock(block);
+              });
+            }); // DO NOT WRAP THIS
+          } catch (e) {
+            throw Error('Failed render Markdown, Highlight, and/or LaTeX');
+          }
 
           return false; // continue processing model output
         },
