@@ -203,7 +203,7 @@ class LlamaCompletions {
    * @param {string} content - The content of the message.
    * @returns {HTMLElement} The created message element.
    */
-  createCompletion(prompt = null) {
+  async createCompletion(prompt = null) {
     // Create a new <div> element
     let div = document.createElement('div');
     // Set the role attribute as metadata
@@ -215,7 +215,7 @@ class LlamaCompletions {
     // Set the prompt for the completion, if provided
     if (prompt !== null) {
       // Set inner HTML content allowing for automated formatting
-      div.innerHTML = marked.parse(prompt);
+      div.innerHTML = await marked.parse(prompt);
     }
     // Return the created message element
     return div; // this is added to contextWindow
@@ -241,16 +241,15 @@ class LlamaCompletions {
   async handleGenerateCompletion(completionDiv, prompt) {
     try {
       // Used to hold chain of typesetting calls
-      let promiseFormattedCompletion = Promise.resolve();
-
-      function typesetAndFormat(callback) {
-        promiseFormattedCompletion = promiseFormattedCompletion.then(() => {
-          MathJax.typesetPromise(callback()).catch((error) =>
-            console.error('Typeset failed', error)
-          );
-        });
-        return promiseFormattedCompletion;
-      }
+      // let promiseFormattedCompletion = Promise.resolve();
+      // function typesetAndFormat(callback) {
+      //   promiseFormattedCompletion = promiseFormattedCompletion.then(() => {
+      //     MathJax.typesetPromise(callback()).catch((error) =>
+      //       console.error('Typeset failed', error)
+      //     );
+      //   });
+      //   return promiseFormattedCompletion;
+      // }
       /* The MathJax documentation recommends chaining promises.
        *
        * Source: https://docs.mathjax.org/en/latest/web/typeset.html#handling-asynchronous-typesetting
@@ -272,18 +271,29 @@ class LlamaCompletions {
           // Update the prompt
           prompt += token.content;
 
-          try {
-            // Dynamically render LaTex typesetting
-            await typesetAndFormat(() => {
-              // Format the content using marked.parse() and hljs.highlightBlock()
-              completionDiv.innerHTML = marked.parse(prompt);
-              completionDiv.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightBlock(block);
-              });
-            }); // DO NOT WRAP THIS
-          } catch (e) {
-            throw Error('Failed render Markdown, Highlight, and/or LaTeX');
-          }
+          // Format the content
+          completionDiv.innerHTML = await marked.parse(prompt);
+          // Highlight the block
+          completionDiv.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightBlock(block);
+          });
+          // Update LaTeX rendering
+          await MathJax.typesetPromise().catch((error) =>
+            console.error('Typeset failed', error)
+          );
+
+          // try {
+          //   // Dynamically render LaTex typesetting
+          //   await typesetAndFormat(() => {
+          //     // Format the content using marked.parse() and hljs.highlightBlock()
+          //     completionDiv.innerHTML = marked.parse(prompt);
+          //     completionDiv.querySelectorAll('pre code').forEach((block) => {
+          //       hljs.highlightBlock(block);
+          //     });
+          //   }); // DO NOT WRAP THIS
+          // } catch (e) {
+          //   throw Error('Failed render Markdown, Highlight, and/or LaTeX');
+          // }
 
           return false; // continue processing model output
         },
@@ -301,7 +311,7 @@ class LlamaCompletions {
     }
   }
 
-  generateModelCompletion(event) {
+  async generateModelCompletion(event) {
     // Get the users input
     const prompt = this.userPrompt.value.trim();
     // Basic validation of user input
@@ -312,7 +322,7 @@ class LlamaCompletions {
     // Clear the input field
     this.userPrompt.value = '';
     // Create the assistants completions div with a loading state
-    const completionDiv = this.createCompletion(prompt);
+    const completionDiv = await this.createCompletion(prompt);
     // Add the completions div to the context window
     this.contextWindow.appendChild(completionDiv);
     MathJax.typesetPromise();
@@ -330,27 +340,27 @@ class LlamaClient {
   }
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  // Initialize Llama client
-  let llama = new LlamaClient();
-  console.log('Successfully initialized llama.js');
-  console.log(llama.name, llama.version, llama.state);
+// Initialize Llama client
+let llama = new LlamaClient();
+console.log('Successfully initialized llama.js');
+console.log(llama.name, llama.version, llama.state);
 
-  // Configure marked.js with highlight.js for code syntax highlighting
-  marked.setOptions({
-    highlight: function (code, lang) {
-      // Function to handle code syntax highlighting using highlight.js
-      // Get the language if available, otherwise set it as plain text
-      const language = highlight.getLanguage(lang) ? lang : 'plaintext';
-      // Apply highlighting and get the highlighted code
-      return highlight.highlight(code, { language }).value;
-    },
-    // Use 'hljs' class prefix for compatibility with highlight.js CSS
-    langPrefix: 'hljs language-'
-  });
-  console.log('Successfully initialized marked.js');
-
-  // Highlight all the code snippets in the document
-  hljs.highlightAll(); // Initial code highlighting, if any
-  console.log('Successfully initialized highlight.js');
+// Configure marked.js with highlight.js for code syntax highlighting
+marked.setOptions({
+  highlight: function (code, lang) {
+    // Function to handle code syntax highlighting using highlight.js
+    // Get the language if available, otherwise set it as plain text
+    const language = highlight.getLanguage(lang) ? lang : 'plaintext';
+    // Apply highlighting and get the highlighted code
+    return highlight.highlight(code, { language }).value;
+  },
+  // Use 'hljs' class prefix for compatibility with highlight.js CSS
+  langPrefix: 'hljs language-',
+  // Use async; this is disabled by default
+  async: true
 });
+console.log('Successfully initialized marked.js');
+
+// Highlight all the code snippets in the document
+hljs.highlightAll(); // Initial code highlighting, if any
+console.log('Successfully initialized highlight.js');
