@@ -15,13 +15,13 @@ class LlamaRequest {
 
     // !IMPORTANT: GET requests cannot have a body!
     if (method === 'GET') {
-      console.log('GET', 'handle response', url);
+      // console.log('GET', 'handle response', url);
       response = await fetch(url, {
         method: method,
         headers: headers
       });
     } else {
-      console.log('POST', 'handle response', url);
+      // console.log('POST', 'handle response', url);
       response = await fetch(url, {
         method: method,
         headers: headers,
@@ -33,7 +33,7 @@ class LlamaRequest {
       console.error(response.status, response.type, response.headers);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    console.log('response is ok');
+    // console.log('response is ok');
     return response; // NOTE: Returning json breaks streaming!
   }
 
@@ -43,7 +43,6 @@ class LlamaRequest {
   }
 
   async post(endpoint, requestData) {
-    console.log('POST', endpoint, requestData);
     const url = `${this.baseUrl}:${this.port}${endpoint}`;
     return await this._handleResponse(url, 'POST', requestData);
   }
@@ -61,7 +60,6 @@ class LlamaRequest {
    * @returns {Object} The parsed JSON object from the server response.
    */
   _processStreamValue(value) {
-    console.log('Processing stream value', value);
     // Decode the streamed value into a string
     const tokenString = new TextDecoder('utf-8').decode(value);
     // Split the string on "data: " to handle concatenated responses
@@ -70,21 +68,17 @@ class LlamaRequest {
     const potentialJson = split[split.length - 1];
     // Parse the potential JSON object
     const token = JSON.parse(potentialJson);
-    console.log('Parsed JSON', token);
     // Return extracted chunked response
     return token;
   }
 
   async stream(endpoint, requestData, callback) {
-    console.log('starting stream...');
     // response is a promise
     const response = await this.post(endpoint, requestData);
-    console.log('getting reader...');
     const reader = response.body.getReader();
     let endStream = false;
 
     while (true) {
-      console.log('processing stream for', endpoint);
       const { done, value } = await reader.read();
       if (done) {
         console.warn('Stream ended without a stop token.');
@@ -245,7 +239,6 @@ class LlamaCompletions {
   }
 
   async handleGenerateCompletion(completionDiv, prompt) {
-    console.log('using prompt to handle generating completion');
     try {
       // Used to hold chain of typesetting calls
       let promiseFormattedCompletion = Promise.resolve();
@@ -276,8 +269,6 @@ class LlamaCompletions {
             return true; // no content left to extract
           }
 
-          // Log the token.content result to the console
-          console.log('got token', token.content);
           // Update the prompt
           prompt += token.content;
 
