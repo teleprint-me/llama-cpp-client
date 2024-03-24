@@ -272,14 +272,6 @@ class LlamaCompletions {
           // Update the prompt
           prompt += token.content;
 
-          // Update the context window with the generated completion
-          completionDiv.innerHTML = marked.parse(prompt);
-
-          // Need to update to highlight all code blocks within the element
-          completionDiv.querySelectorAll('pre code').forEach((block) => {
-            hljs.highlightBlock(block);
-          });
-
           try {
             // Dynamically render LaTex typesetting
             await typesetAndFormat(() => {
