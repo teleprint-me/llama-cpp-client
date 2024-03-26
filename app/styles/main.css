@@ -58,6 +58,10 @@ nav {
   background-color: #272727;
   border-radius: 5px;
   padding: 10px;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
 }
 
 pre {
