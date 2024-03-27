@@ -20,21 +20,6 @@
   </head>
 
   <body>
-    <header>
-      <div class="container">
-        <nav>
-          <button id="completion-ui">
-            <i class="bx bx-message-square-dots"></i>
-            <p>Completions</p>
-          </button>
-          <button id="chat-completion-ui">
-            <i class="bx bx-conversation"></i>
-            <p>Chat Completions</p>
-          </button>
-        </nav>
-      </div>
-    </header>
-
     <main>
       <div class="container">
         <div id="context-window"></div>
@@ -59,16 +44,21 @@
           <!-- Button group -->
           <div class="button-row">
             <button id="generate-completion">
-              <i class="bx bx-play"></i>
-              <p>Generate</p>
+              <i class="bx bx-play bx-sm"></i>
             </button>
             <button id="regenerate-completion" class="completion-button">
-              <i class="bx bx-rotate-right"></i>
-              <p>Regenerate</p>
+              <i class="bx bx-rotate-right bx-sm"></i>
             </button>
             <button id="model-parameters">
-              <i class="bx bx-cog"></i>
-              <p>Parameters</p>
+              <i class="bx bx-cog bx-sm"></i>
+            </button>
+            <button id="history">
+              <i class="bx bx-history bx-sm"></i>
+            </button>
+            <button id="toggle-ui">
+              <!-- <i class="bx bx-message-square-dots"></i> -->
+              <!-- <p>Completions</p> -->
+              <i class="bx bx-chat bx-sm"></i>
             </button>
           </div>
         </div>

@@ -222,13 +222,11 @@ class LlamaCompletions {
   }
 
   _toggleGenerateStop() {
-    this.generateButton.querySelector('p').innerText = 'Stop';
     this.generateButton.querySelector('i').classList.remove('bx-play');
     this.generateButton.querySelector('i').classList.add('bx-stop');
   }
 
   _toggleGenerateStart() {
-    this.generateButton.querySelector('p').innerText = 'Generate';
     this.generateButton.querySelector('i').classList.remove('bx-stop');
     this.generateButton.querySelector('i').classList.add('bx-play');
   }
