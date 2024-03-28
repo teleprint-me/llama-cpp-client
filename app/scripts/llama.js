@@ -238,18 +238,10 @@ class LlamaCompletions {
 
   async handleGenerateCompletion(completionDiv, prompt) {
     try {
-      // Used to hold chain of typesetting calls
-      // let promiseFormattedCompletion = Promise.resolve();
-      // function typesetAndFormat(callback) {
-      //   promiseFormattedCompletion = promiseFormattedCompletion.then(() => {
-      //     MathJax.typesetPromise(callback()).catch((error) =>
-      //       console.error('Typeset failed', error)
-      //     );
-      //   });
-      //   return promiseFormattedCompletion;
-      // }
       /* The MathJax documentation recommends chaining promises.
-       *
+       * NOTE: Chaining promises failed to resolve rendering related issues.
+       * Some of these issues may be related to either the server, browser, or both.
+       * Further investigation is required.
        * Source: https://docs.mathjax.org/en/latest/web/typeset.html#handling-asynchronous-typesetting
        */
 
@@ -280,19 +272,6 @@ class LlamaCompletions {
             console.error('Typeset failed', error)
           );
 
-          // try {
-          //   // Dynamically render LaTex typesetting
-          //   await typesetAndFormat(() => {
-          //     // Format the content using marked.parse() and hljs.highlightBlock()
-          //     completionDiv.innerHTML = marked.parse(prompt);
-          //     completionDiv.querySelectorAll('pre code').forEach((block) => {
-          //       hljs.highlightBlock(block);
-          //     });
-          //   }); // DO NOT WRAP THIS
-          // } catch (e) {
-          //   throw Error('Failed render Markdown, Highlight, and/or LaTeX');
-          // }
-
           return false; // continue processing model output
         },
         true // enable streaming
@@ -320,7 +299,7 @@ class LlamaCompletions {
     // Clear the input field
     this.userPrompt.value = '';
     // Create the assistants completions div with a loading state
-    const completionDiv = await this.createCompletion(prompt);
+    const completionDiv = this.createCompletion(prompt);
     // Add the completions div to the context window
     this.contextWindow.appendChild(completionDiv);
     MathJax.typesetPromise();
