@@ -166,6 +166,9 @@ class LlamaCompletions {
       parameters
     );
 
+    // model "is" or "is not" generating
+    this.generating = false;
+
     // context window has formatted completions
     this.contextWindow = document.querySelector('div#context-window');
     // text area has user input
@@ -222,11 +225,13 @@ class LlamaCompletions {
   }
 
   _toggleGenerateStop() {
+    this.generating = true;
     this.generateButton.querySelector('i').classList.remove('bx-play');
     this.generateButton.querySelector('i').classList.add('bx-stop');
   }
 
   _toggleGenerateStart() {
+    this.generating = false;
     this.generateButton.querySelector('i').classList.remove('bx-stop');
     this.generateButton.querySelector('i').classList.add('bx-play');
   }
@@ -252,10 +257,18 @@ class LlamaCompletions {
       await this.llamaAPI.getCompletions(
         prompt, // prompt
         // use lambda to avoid 'this' conflicts
-        async function (token) {
+        async (token) => {
           // callback handles the models completion
           if (token.stop) {
             return true; // no content left to extract
+          }
+
+          // user is interrupting model generation
+          if (this.generating === false) {
+            console.log('STOP: Interrupt completion generation');
+            this.event.stopPropagation();
+            this.event.preventDefault();
+            return true;
           }
 
           // Update the prompt
@@ -289,6 +302,14 @@ class LlamaCompletions {
   }
 
   async generateModelCompletion(event) {
+    // // Check if the model is generating
+    if (this.generating === true) {
+      console.log('STOP: Set generating flag to false');
+      this.generating = false;
+      return;
+    }
+    // set the active event target
+    this.event = event;
     // Get the users input
     const prompt = this.userPrompt.value.trim();
     // Basic validation of user input
@@ -299,7 +320,9 @@ class LlamaCompletions {
     // Clear the input field
     this.userPrompt.value = '';
     // Create the assistants completions div with a loading state
-    const completionDiv = this.createCompletion(prompt);
+    // NOTE: await does affect this expression. The TS linter is incorrect
+    // in its analysis and is reporting a false negative.
+    const completionDiv = await this.createCompletion(prompt);
     // Add the completions div to the context window
     this.contextWindow.appendChild(completionDiv);
     MathJax.typesetPromise();
