@@ -3,7 +3,7 @@ Module: llama_cpp_client.client
 """
 
 import json
-import sys
+import os
 from typing import Any, Callable, Dict, List
 
 from rich import pretty, print
@@ -17,6 +17,22 @@ from llama_cpp_client.history import LlamaCppHistory
 from llama_cpp_client.request import LlamaCppRequest
 from llama_cpp_client.tokenizer import LlamaCppTokenizer
 from llama_cpp_client.types import ChatMessage
+
+
+def remove_lines_console(num_lines: int) -> None:
+    for _ in range(num_lines):
+        print("\x1b[A", end="\r", flush=True)
+
+
+def estimate_lines(text: str) -> int:
+    columns, _ = os.get_terminal_size()
+    line_count = 1
+    lines = text.split("\n")
+
+    for line in lines:
+        line_count += (len(line) // columns) + 1
+
+    return line_count
 
 
 class LlamaCppClient:
@@ -44,18 +60,18 @@ class LlamaCppClient:
 
         # set llama.cpp server payload
         self.data = {
-            "messages": self.chat_history.messages,
+            "messages": self.history.messages,
             # set model hyper parameters
-            "temperature": self.temperature,
-            "top_k": self.topk,
-            "top_p": self.top_p,
-            "n_predict": self.n_predict,
-            "seed": self.seed,
-            "repeat_penalty": self.repeat_penalty,
-            "min_p": self.min_p,
+            "temperature": temperature,
+            "top_k": top_k,
+            "top_p": top_p,
+            "n_predict": n_predict,
+            "seed": seed,
+            "repeat_penalty": repeat_penalty,
+            "min_p": min_p,
             # set llama.cpp server flags
-            "stream": self.stream,
-            "cache_prompt": self.cache_prompt,
+            "stream": stream,
+            "cache_prompt": cache_prompt,
         }
 
         self.console = Console()
@@ -63,64 +79,59 @@ class LlamaCppClient:
         self._render_messages_once_on_start()
 
     def _render_messages_once_on_start(self) -> None:
-        self.chat_history.load()
-        for message in self.chat_history.messages:
+        self.history.load()
+        for message in self.history.messages:
+            self.console.print(Markdown(f"**{message['role']}**"))
             self.console.print(
                 Markdown(message["content"]),
             )
+            print()
 
     def encode(self, prompt: List[Dict[str, str]]) -> List[int]: ...
 
     def decode(self, tokens: List[int]) -> List[Dict[str, str]]: ...
 
-    def health(self):
-        try:
-            return self.request.get("/health")
-        except Exception as e:
-            print(f"HealthError: {e}")
+    def health(self) -> Dict[str, Any]:
+        return self.request.get("/health")
 
-    def slots(self):
-        try:
-            return self.request.get("/slots")
-        except Exception as e:
-            print(f"SlotsError: {e}")
+    def slots(self) -> Dict[str, Any]:
+        return self.request.get("/slots")
 
-    def stream_completion(self, prompt):
+    def stream_chat_completion(self) -> None:
+        content = ""
         block = "█ "
-        self.data.prompt = prompt
-        # Generate the models response
-        generator = llama_cpp_request.stream("/v1/completions", data=self.data)
+        generator = self.request.stream("/v1/chat/completions", data=self.data)
+
+        print()  # Pad model output
+        self.console.print(Markdown("**assistant**"))
         with Live(console=self.console) as live:
-            content = ""  # concat model response chunks
             for response in generator:
                 if "content" in response["choices"][0]["delta"]:
                     content += response["choices"][0]["delta"]["content"]
                 if response["choices"][0]["finish_reason"] is not None:
                     block = ""  # Clear the block
                 markdown = Markdown(content + block)
-                live.update(
-                    markdown,
-                    refresh=True,
-                )
-            print()  # add padding to models output
+                live.update(markdown, refresh=True)
+        print()  # Pad model output
 
-        self.chat_history.append({"role": "assistant", "content": content})
+        self.history.append({"role": "assistant", "content": content})
 
-    def prompt_model(self):
+    def run_chat(self) -> None:
         """Feed structured input data for the language model to process."""
-        status = self.health()["status"]
-        assert status == "ok", "Server not ready or error!"
-        self.model_name = self.get_model_name()
+        status = self.health().get("status")
+        assert status == "ok", "Server not found!"
         while True:
             try:
-                prompt = self.chat_history.prompt()
-                self.console.print(Markdown(prompt))
-                self.stream_completion(prompt=prompt)
+                self.console.print(Markdown("**user**"))
+                content = self.history.prompt()
+                remove_lines_console(estimate_lines(content))
+                self.history.append({"role": "user", "content": content})
+                self.stream_chat_completion()
 
             # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
             # Adding EOFError prevents an exception and gracefully exits.
             except (KeyboardInterrupt, EOFError):
-                self.chat_history.save()
+                self.history.save()
                 exit()
 
 
@@ -179,10 +190,9 @@ function_schemas = [
 def main():
     pretty.install()
 
-    # NOTE: Mixtral is a Instruct based MoE Model which is composed of 8 7B Mistral models
     system_message = ChatMessage(
         role="system",
-        content="My name is StableLM. I am a supportive and helpful assistant.\n",
+        content="My name is Stable. I am a supportive and helpful assistant.\n",
     )
     user_message = ChatMessage(
         role="user",
@@ -190,42 +200,24 @@ def main():
     )
     model_message = ChatMessage(
         role="assistant",
-        content="Hello Austin, nice to meet you! I'm StableLM, a helpful assistant. How can I assist you today?",
+        content="Hello Austin, nice to meet you! My name is Stable. I am a helpful assistant. How may I assist you today?",
     )
-    user_message = ChatMessage(
-        role="user",
-        content="How can I get of a list of prime number in Python?\n",
+    # user_message = ChatMessage(
+    #     role="user",
+    #     content="How can I get of a list of prime number in Python?\n",
+    # )
+    messages = [system_message, user_message, model_message]
+
+    llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
+    llama_cpp_tokenizer = LlamaCppTokenizer(llama_cpp_request)
+    llama_cpp_history = LlamaCppHistory("test", system_message["content"])
+    llama_cpp_history.messages = messages
+    llama_cpp_client = LlamaCppClient(
+        llama_cpp_request, llama_cpp_history, llama_cpp_tokenizer
     )
-    messages = [system_message, user_message, model_message, user_message]
-
-    # Example usage:
-    # endpoint = "/completion"
-    base_url = "http://127.0.0.1"
-    port = "8080"
-    endpoint = "/v1/chat/completions"
-
-    llama_cpp_request = LlamaCppRequest(base_url=base_url, port=port)
     # `grammar`: Set grammar for grammar-based sampling (default: no grammar)
 
-    # Structure the prompt for to stream the request
-    data = {"messages": messages, "stream": True}
-    # Generate the models response
-    generator = llama_cpp_request.stream(endpoint, data=data)
-    # Handle the models generated response
-    content = ""
-    for response in generator:
-        if "content" in response["choices"][0]["delta"]:
-            # extract the token from the response
-            token = response["choices"][0]["delta"]["content"]
-            # append each chunk to the response
-            content += token
-            print(token, end="")  # print the chunk out to the user
-            sys.stdout.flush()  # flush the output to standard output
-
-    print()  # add padding to models output
-    # Build the models response
-    model_message = ChatMessage(role="user", content=content)
-    messages.append(model_message)
+    llama_cpp_client.run_chat()
 
 
 if __name__ == "__main__":
