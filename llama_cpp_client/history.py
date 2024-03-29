@@ -7,6 +7,10 @@ import os
 from pathlib import Path
 from typing import Dict, List
 
+from prompt_toolkit import PromptSession
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.history import FileHistory
+
 
 class LlamaCppHistory:
     """Track the language models conversational history"""
@@ -19,6 +23,11 @@ class LlamaCppHistory:
 
         # Define the file path for storing chat history
         self.file_path = cache / f"{session_name}.json"
+
+        # Define the file path for storing prompt session history
+        file_history_path = cache / f"{session_name}.history"
+        self.session = PromptSession(history=FileHistory(file_history_path))
+        self.auto_suggest = AutoSuggestFromHistory()
 
         # Define the list for tracking chat messages.
         # Each message is a dictionary with the following structure:
@@ -67,3 +76,9 @@ class LlamaCppHistory:
     def reset(self) -> None:
         """Reset the language models current session. Warning: This is a destructive action."""
         self.messages = []
+
+    def prompt(self) -> str:
+        """Prompt the user for input"""
+        return self.session.prompt(
+            "> ", auto_suggest=self.auto_suggest, multiline=True
+        ).strip()
