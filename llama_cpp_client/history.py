@@ -59,18 +59,20 @@ class LlamaCppHistory:
         try:
             with open(self.file_path, "r") as chat_session:
                 self.messages = json.load(chat_session)
+            print(f"LlamaCppHistory: Using cache: {self.file_path}")
             return self.messages
         except (FileNotFoundError, json.JSONDecodeError):
             self.save()  # create the missing file
-            print(f"ModelHistoryLoad: Created new cache: {self.file_path}")
+            print(f"LlamaCppHistory: Created new cache: {self.file_path}")
 
     def save(self) -> None:
         """Save the language models current session"""
         try:
             with open(self.file_path, "w") as chat_session:
                 json.dump(self.messages, chat_session, indent=2)
+            print(f"LlamaCppHistory: Saved cache: {self.file_path}")
         except TypeError as e:
-            print(f"ModelHistoryWrite: {e}")
+            print(f"LlamaCppHistory: Cache failed: {e}")
 
     def append(self, message: Dict[str, str]) -> None:
         """Append a message into the language models current session"""
