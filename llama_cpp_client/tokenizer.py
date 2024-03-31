@@ -8,13 +8,13 @@ from llama_cpp_client.request import LlamaCppRequest
 
 
 class LlamaCppTokenizer:
-    def __init__(self, llama_cpp_request: Optional[LlamaCppRequest] = None):
+    def __init__(self, request: Optional[LlamaCppRequest] = None):
         """
         Initializes the LlamaCppTokenizer with a LlamaCppRequest instance.
 
         :param server_url: The base URL of the server where the tokenize and detokenize endpoints are available.
         """
-        self.llama_cpp_request = llama_cpp_request or LlamaCppRequest()
+        self.llama_cpp_request = request or LlamaCppRequest()
 
     def tokenize(self, text: str) -> List[int]:
         """
