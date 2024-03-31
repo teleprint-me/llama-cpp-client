@@ -33,8 +33,26 @@ class LlamaCppHistory:
         # Each message is a dictionary with the following structure:
         # {"role": "user/assistant/system", "content": "<message content>"}
         self.messages: List[Dict[str, str]] = []
-        if system_message is not None:
-            self.messages.append({"role": "system", "content": system_message})
+        # Set the system message, if any. There is only one system message and
+        # it is always the first element within a sequence of messages.
+        # self.messages = [{"role": "system", "content": value}]
+        self.system_message = system_message
+
+    @property
+    def system_message(self) -> Dict[str, str]:
+        return self._system_message
+
+    @system_message.setter
+    def system_message(self, value: str) -> None:
+        if value is None:
+            raise ValueError("Value cannot be None for system_message.")
+
+        self._system_message = {"role": "system", "content": value}
+
+        if self.messages:
+            self.messages[0] = self._system_message
+        else:
+            self.messages = [self._system_message]
 
     def load(self) -> List[Dict[str, str]]:
         """Load the language models previous session"""
@@ -75,7 +93,10 @@ class LlamaCppHistory:
 
     def reset(self) -> None:
         """Reset the language models current session. Warning: This is a destructive action."""
-        self.messages = []
+        if self.system_message:
+            self.messages = [self.system_message]
+        else:
+            self.messages = []
 
     def prompt(self) -> str:
         """Prompt the user for input"""
