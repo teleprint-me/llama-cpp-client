@@ -11,12 +11,12 @@ from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
 
+from llama_cpp_client.api import LlamaCppAPI
 from llama_cpp_client.format import get_prompt_sequence
 from llama_cpp_client.grammar import LlamaCppGrammar
 from llama_cpp_client.history import LlamaCppHistory
 from llama_cpp_client.request import LlamaCppRequest
 from llama_cpp_client.tokenizer import LlamaCppTokenizer
-from llama_cpp_client.types import ChatMessage
 
 
 def remove_lines_console(num_lines: int) -> None:
@@ -38,44 +38,18 @@ def estimate_lines(text: str) -> int:
 class LlamaCppClient:
     def __init__(
         self,
-        request: LlamaCppRequest = None,
+        api: LlamaCppAPI = None,
         history: LlamaCppHistory = None,
         tokenizer: LlamaCppTokenizer = None,
-        top_k: int = 50,
-        top_p: float = 0.90,
-        min_p: float = 0.1,
-        temperature: float = 0.7,
-        presence_penalty: float = 0.0,
-        frequency_penalty: float = 0.0,
-        repeat_penalty: float = 1.1,
-        n_predict: int = -1,
-        seed: int = 1337,
-        stream: bool = True,
-        cache_prompt: bool = True,
     ) -> None:
         # manage llama.cpp client instances
-        self.request = request
-        self.history = history
-        self.tokenizer = tokenizer
-
-        # set llama.cpp server payload
-        self.data = {
-            "messages": self.history.messages,
-            # set model hyper parameters
-            "temperature": temperature,
-            "top_k": top_k,
-            "top_p": top_p,
-            "n_predict": n_predict,
-            "seed": seed,
-            "repeat_penalty": repeat_penalty,
-            "min_p": min_p,
-            # set llama.cpp server flags
-            "stream": stream,
-            "cache_prompt": cache_prompt,
-        }
-
+        self.api = api or LlamaCppAPI()
+        self.history = history or LlamaCppHistory(
+            session_name="client",
+            system_message="My name is Llama. I am a supportive and helpful assistant.",
+        )
+        self.tokenizer = tokenizer or LlamaCppTokenizer(self.api.request)
         self.console = Console()
-
         self._render_messages_once_on_start()
 
     def _render_messages_once_on_start(self) -> None:
@@ -92,15 +66,15 @@ class LlamaCppClient:
     def decode(self, tokens: List[int]) -> List[Dict[str, str]]: ...
 
     def health(self) -> Dict[str, Any]:
-        return self.request.get("/health")
+        return self.api.health
 
     def slots(self) -> Dict[str, Any]:
-        return self.request.get("/slots")
+        return self.api.slots
 
     def stream_chat_completion(self) -> None:
         content = ""
         block = "█ "
-        generator = self.request.stream("/v1/chat/completions", data=self.data)
+        generator = self.api.chat_completion(self.history.messages)
 
         print()  # Pad model output
         self.console.print(Markdown("**assistant**"))
@@ -118,8 +92,6 @@ class LlamaCppClient:
 
     def run_chat(self) -> None:
         """Feed structured input data for the language model to process."""
-        status = self.health().get("status")
-        assert status == "ok", "Server not found!"
         while True:
             try:
                 self.console.print(Markdown("**user**"))
@@ -190,30 +162,14 @@ function_schemas = [
 def main():
     pretty.install()
 
-    system_message = ChatMessage(
-        role="system",
-        content="My name is Stable. I am a supportive and helpful assistant.\n",
-    )
-    user_message = ChatMessage(
-        role="user",
-        content="Hello! My name is Austin. What is your name?\n",
-    )
-    model_message = ChatMessage(
-        role="assistant",
-        content="Hello Austin, nice to meet you! My name is Stable. I am a helpful assistant. How may I assist you today?",
-    )
-    # user_message = ChatMessage(
-    #     role="user",
-    #     content="How can I get of a list of prime number in Python?\n",
-    # )
-    messages = [system_message, user_message, model_message]
+    system_message = "My name is Stable. I am a supportive and helpful assistant.\n"
 
     llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
+    llama_cpp_api = LlamaCppAPI(llama_cpp_request)
     llama_cpp_tokenizer = LlamaCppTokenizer(llama_cpp_request)
-    llama_cpp_history = LlamaCppHistory("test", system_message["content"])
-    llama_cpp_history.messages = messages
+    llama_cpp_history = LlamaCppHistory("test", system_message)
     llama_cpp_client = LlamaCppClient(
-        llama_cpp_request, llama_cpp_history, llama_cpp_tokenizer
+        llama_cpp_api, llama_cpp_history, llama_cpp_tokenizer
     )
     # `grammar`: Set grammar for grammar-based sampling (default: no grammar)
 
