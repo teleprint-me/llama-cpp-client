@@ -2,6 +2,7 @@
 Module: llama_cpp_client.client
 """
 
+import argparse
 import json
 import os
 from typing import Any, Callable, Dict, List
@@ -42,6 +43,9 @@ class LlamaCppClient:
         history: LlamaCppHistory = None,
         tokenizer: LlamaCppTokenizer = None,
     ) -> None:
+        # install automatic pretty printing in python repl
+        pretty.install()
+
         # manage llama.cpp client instances
         self.api = api or LlamaCppAPI()
         self.history = history or LlamaCppHistory(
@@ -164,15 +168,45 @@ function_schemas = [
 ]
 
 
+def get_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-n",
+        "--session-name",
+        type=str,
+        required=True,
+        help="The caches session name",
+    )
+    parser.add_argument(
+        "-m",
+        "--system-message",
+        type=str,
+        default="My name is Llama. I am a supportive and helpful assistant.",
+        help="The language models system message",
+    )
+    parser.add_argument(
+        "-u",
+        "--base-url",
+        type=str,
+        default="http://127.0.0.1",
+        help="The servers url",
+    )
+    parser.add_argument(
+        "-p",
+        "--port",
+        type=str,
+        default="8080",
+        help="The servers port",
+    )
+    return parser.parse_args()
+
+
 def main():
-    pretty.install()
-
-    system_message = "My name is Llama. I am a supportive and helpful assistant.\n"
-
-    llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
+    args = get_arguments()
+    llama_cpp_request = LlamaCppRequest(args.base_url, args.port)
     llama_cpp_api = LlamaCppAPI(llama_cpp_request)
     llama_cpp_tokenizer = LlamaCppTokenizer(llama_cpp_request)
-    llama_cpp_history = LlamaCppHistory("test", system_message)
+    llama_cpp_history = LlamaCppHistory(args.session_name, args.system_message)
     llama_cpp_client = LlamaCppClient(
         llama_cpp_api, llama_cpp_history, llama_cpp_tokenizer
     )
