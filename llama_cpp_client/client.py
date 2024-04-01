@@ -94,15 +94,20 @@ class LlamaCppClient:
         """Feed structured input data for the language model to process."""
         while True:
             try:
-                self.console.print(Markdown("**user**"))
                 content = self.history.prompt()
                 remove_lines_console(estimate_lines(content))
+                self.console.print(Markdown("**user**"))
+                self.console.print(Markdown(content))
                 self.history.append({"role": "user", "content": content})
                 self.stream_chat_completion()
 
             # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
+            except KeyboardInterrupt:
+                message = self.history.pop()
+                remove_lines_console(estimate_lines(message["content"]))
+                print("Popped", message["role"], "message.")
             # Adding EOFError prevents an exception and gracefully exits.
-            except (KeyboardInterrupt, EOFError):
+            except EOFError:
                 self.history.save()
                 exit()
 
@@ -162,7 +167,7 @@ function_schemas = [
 def main():
     pretty.install()
 
-    system_message = "My name is Stable. I am a supportive and helpful assistant.\n"
+    system_message = "My name is Llama. I am a supportive and helpful assistant.\n"
 
     llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
     llama_cpp_api = LlamaCppAPI(llama_cpp_request)
