@@ -65,10 +65,10 @@ class LlamaCppHistory:
 
         self._system_message = {"role": "system", "content": content}
 
-        if self.messages:
-            self.messages[0] = self._system_message
+        if self._messages:
+            self._messages[0] = self._system_message
         else:
-            self.messages = [self._system_message]
+            self._messages = [self._system_message]
 
     def load(self) -> List[Dict[str, str]]:
         """Load the language models previous session"""
