@@ -32,22 +32,38 @@ class LlamaCppHistory:
         # Define the list for tracking chat messages.
         # Each message is a dictionary with the following structure:
         # {"role": "user/assistant/system", "content": "<message content>"}
-        self.messages: List[Dict[str, str]] = []
+        self._messages: List[Dict[str, str]] = []
         # Set the system message, if any. There is only one system message and
         # it is always the first element within a sequence of messages.
         # self.messages = [{"role": "system", "content": value}]
         self.system_message = system_message
+
+    def __len__(self) -> int:
+        return len(self.messages)
+
+    def __contains__(self, message: Dict[str, str]) -> bool:
+        return message in self.messages
+
+    def __getitem__(self, index: int) -> Dict[str, str]:
+        return self.messages[index]
+
+    def __setitem__(self, index: int, message: Dict[str, str]) -> None:
+        self.messages[index] = message
+
+    @property
+    def messages(self) -> List[Dict[str, str]]:
+        return self._messages
 
     @property
     def system_message(self) -> Dict[str, str]:
         return self._system_message
 
     @system_message.setter
-    def system_message(self, value: str) -> None:
-        if value is None:
-            raise ValueError("Value cannot be None for system_message.")
+    def system_message(self, content: str) -> None:
+        if content is None:
+            raise ValueError("Content cannot be None for system_message.")
 
-        self._system_message = {"role": "system", "content": value}
+        self._system_message = {"role": "system", "content": content}
 
         if self.messages:
             self.messages[0] = self._system_message
