@@ -104,7 +104,7 @@ if __name__ == "__main__":
     llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
 
     # Define the prompt for the model
-    prompt = "<|system|>\nMy name is StableLM. I am a helpful assistant.<|endoftext|>\n<|user|>\nHello! My name is Han Solo! What is your name?<|endoftext|>\n<|assistant|>\n"
+    prompt = "Once upon a time"
 
     # Prepare data for streaming request
     data = {"prompt": prompt, "stream": True}
