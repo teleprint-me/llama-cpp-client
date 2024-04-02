@@ -35,20 +35,20 @@ class LlamaCppHistory:
         self._messages: List[Dict[str, str]] = []
         # Set the system message, if any. There is only one system message and
         # it is always the first element within a sequence of messages.
-        # self.messages = [{"role": "system", "content": value}]
+        # self._messages = [{"role": "system", "content": value}]
         self.system_message = system_message
 
     def __len__(self) -> int:
-        return len(self.messages)
+        return len(self._messages)
 
     def __contains__(self, message: Dict[str, str]) -> bool:
-        return message in self.messages
+        return message in self._messages
 
     def __getitem__(self, index: int) -> Dict[str, str]:
-        return self.messages[index]
+        return self._messages[index]
 
     def __setitem__(self, index: int, message: Dict[str, str]) -> None:
-        self.messages[index] = message
+        self._messages[index] = message
 
     @property
     def messages(self) -> List[Dict[str, str]]:
@@ -74,9 +74,9 @@ class LlamaCppHistory:
         """Load the language models previous session"""
         try:
             with open(self.file_path, "r") as chat_session:
-                self.messages = json.load(chat_session)
+                self._messages = json.load(chat_session)
             print(f"LlamaCppHistory: Using cache: {self.file_path}")
-            return self.messages
+            return self._messages
         except (FileNotFoundError, json.JSONDecodeError):
             self.save()  # create the missing file
             print(f"LlamaCppHistory: Created new cache: {self.file_path}")
@@ -85,18 +85,18 @@ class LlamaCppHistory:
         """Save the language models current session"""
         try:
             with open(self.file_path, "w") as chat_session:
-                json.dump(self.messages, chat_session, indent=2)
+                json.dump(self._messages, chat_session, indent=2)
             print(f"LlamaCppHistory: Saved cache: {self.file_path}")
         except TypeError as e:
             print(f"LlamaCppHistory: Cache failed: {e}")
 
     def append(self, message: Dict[str, str]) -> None:
         """Append a message into the language models current session"""
-        self.messages.append(message)
+        self._messages.append(message)
 
     def insert(self, index: int, element: object) -> None:
         """Insert a message into the language models current session"""
-        self.messages.insert(index, element)
+        self._messages.insert(index, element)
 
     def pop(self, index: int = None) -> Dict[str, str]:
         """Pop a message from the language models current session"""
@@ -105,23 +105,23 @@ class LlamaCppHistory:
             raise IndexError("System message is at index 0 and cannot be popped")
         # Use default pop if index is None
         if index is None:
-            return self.messages.pop()
+            return self._messages.pop()
         # Return the popped message
-        return self.messages.pop(index)  # Raises index error if index is out of bounds
+        return self._messages.pop(index)  # Raises index error if index is out of bounds
 
     def replace(self, index: int, content: str) -> None:
         """Substitute a message within the language models current session"""
         try:
-            self.messages[index]["content"] = content
+            self._messages[index]["content"] = content
         except (IndexError, KeyError) as e:
             print(f"ModelHistoryReplace: Failed to substitute chat message: {e}")
 
     def reset(self) -> None:
         """Reset the language models current session. Warning: This is a destructive action."""
         if self.system_message:
-            self.messages = [self.system_message]
+            self._messages = [self.system_message]
         else:
-            self.messages = []
+            self._messages = []
 
     def prompt(self) -> str:
         """Prompt the user for input"""
