@@ -4,7 +4,6 @@ Module: llama_cpp_client.client
 
 import argparse
 import json
-import os
 from typing import Any, Callable, Dict, List
 
 from rich import pretty, print
@@ -18,22 +17,6 @@ from llama_cpp_client.grammar import LlamaCppGrammar
 from llama_cpp_client.history import LlamaCppHistory
 from llama_cpp_client.request import LlamaCppRequest
 from llama_cpp_client.tokenizer import LlamaCppTokenizer
-
-
-def remove_lines_console(num_lines: int) -> None:
-    for _ in range(num_lines):
-        print("\x1b[A", end="\r", flush=True)
-
-
-def estimate_lines(text: str) -> int:
-    columns, _ = os.get_terminal_size()
-    line_count = 1
-    lines = text.split("\n")
-
-    for line in lines:
-        line_count += (len(line) // columns) + 1
-
-    return line_count
 
 
 class LlamaCppClient:
@@ -60,9 +43,7 @@ class LlamaCppClient:
         self.history.load()
         for message in self.history.messages:
             self.console.print(Markdown(f"**{message['role']}**"))
-            self.console.print(
-                Markdown(message["content"]),
-            )
+            self.console.print(message["content"])
             print()
 
     def encode(self, prompt: List[Dict[str, str]]) -> List[int]: ...
@@ -88,8 +69,8 @@ class LlamaCppClient:
                     content += response["choices"][0]["delta"]["content"]
                 if response["choices"][0]["finish_reason"] is not None:
                     block = ""  # Clear the block
-                markdown = Markdown(content + block)
-                live.update(markdown, refresh=True)
+                # markdown = Markdown(content + block)
+                live.update(content + block, refresh=True)
         print()  # Pad model output
 
         self.history.append({"role": "assistant", "content": content})
@@ -99,16 +80,13 @@ class LlamaCppClient:
         while True:
             try:
                 content = self.history.prompt()
-                remove_lines_console(estimate_lines(content))
                 self.console.print(Markdown("**user**"))
-                self.console.print(Markdown(content))
                 self.history.append({"role": "user", "content": content})
                 self.stream_chat_completion()
 
             # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
             except KeyboardInterrupt:
                 message = self.history.pop()
-                remove_lines_console(estimate_lines(message["content"]))
                 print("Popped", message["role"], "message.")
             # Adding EOFError prevents an exception and gracefully exits.
             except EOFError:
