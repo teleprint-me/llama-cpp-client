@@ -46,16 +46,6 @@ class LlamaCppClient:
             self.console.print(message["content"])
             print()
 
-    def encode(self, prompt: List[Dict[str, str]]) -> List[int]: ...
-
-    def decode(self, tokens: List[int]) -> List[Dict[str, str]]: ...
-
-    def health(self) -> Dict[str, Any]:
-        return self.api.health
-
-    def slots(self) -> Dict[str, Any]:
-        return self.api.slots
-
     def stream_chat_completion(self) -> None:
         content = ""
         block = "█ "
