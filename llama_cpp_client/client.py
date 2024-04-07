@@ -69,8 +69,8 @@ class LlamaCppClient:
         """Feed structured input data for the language model to process."""
         while True:
             try:
-                content = self.history.prompt()
                 self.console.print(Markdown("**user**"))
+                content = self.history.prompt()
                 self.history.append({"role": "user", "content": content})
                 self.stream_chat_completion()
 
