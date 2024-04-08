@@ -73,7 +73,7 @@ class LlamaCppClient:
                 content = self.history.prompt()
                 self.history.append({"role": "user", "content": content})
                 self.stream_chat_completion()
-
+                self.history.save()
             # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
             except KeyboardInterrupt:
                 message = self.history.pop()
