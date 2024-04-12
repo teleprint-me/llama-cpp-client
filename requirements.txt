@@ -6,7 +6,7 @@ curtsies==0.4.2
 cwcwidth==0.1.9
 gguf==0.6.0
 greenlet==3.0.2
-idna==3.6
+idna==3.7
 importlib-metadata==7.0.0
 isort==5.13.2
 Jinja2==3.1.3
