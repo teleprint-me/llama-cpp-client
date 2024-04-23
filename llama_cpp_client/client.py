@@ -39,6 +39,10 @@ class LlamaCppClient:
         self.console = Console()
         self._render_messages_once_on_start()
 
+    @property
+    def cursor(self) -> str:
+        return "█ "
+
     def _render_messages_once_on_start(self) -> None:
         self.history.load()
         for message in self.history.messages:
@@ -46,9 +50,24 @@ class LlamaCppClient:
             self.console.print(message["content"])
             print()
 
+    def stream_completion(self, prompt: str) -> None:
+        content = ""
+        block = self.cursor
+        generator = self.api.completion(prompt)
+
+        # Handle the model's generated response
+        with Live(console=self.console) as live:
+            for response in generator:
+                if "content" in response:
+                    content += response["content"]
+                if response["stop"]:
+                    block = ""  # Clear the block
+                live.update(content + block)
+        print()  # Pad model output
+
     def stream_chat_completion(self) -> None:
         content = ""
-        block = "█ "
+        block = self.cursor
         generator = self.api.chat_completion(self.history.messages)
 
         print()  # Pad model output
