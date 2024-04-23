@@ -59,6 +59,8 @@ class LlamaCppClient:
         # API only supports individual completions at the moment
         # Currently researching how to implement multi-prompting
         generator = self.api.completion(prompt)
+
+        print()  # Pad model output
         self.console.print(self.history.completions[-1]["content"], end="")
         # Handle the model's generated response
         for response in generator:
