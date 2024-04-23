@@ -137,7 +137,9 @@ function_schemas = [
 
 
 def get_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="A command-line interface for interacting with the llama language model."
+    )
     parser.add_argument(
         "-n",
         "--session-name",
