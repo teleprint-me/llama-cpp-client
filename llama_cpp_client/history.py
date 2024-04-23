@@ -13,7 +13,7 @@ from prompt_toolkit.history import FileHistory
 
 
 class LlamaCppHistory:
-    """Track the language models conversational history"""
+    """Track the language models completions history"""
 
     def __init__(self, session_name: str, system_message: str = None):
         # Define the cache path for storing chat history
@@ -29,30 +29,33 @@ class LlamaCppHistory:
         self.session = PromptSession(history=FileHistory(file_history_path))
         self.auto_suggest = AutoSuggestFromHistory()
 
-        # Define the list for tracking chat messages.
-        # Each message is a dictionary with the following structure:
-        # {"role": "user/assistant/system", "content": "<message content>"}
-        self._messages: List[Dict[str, str]] = []
+        # Define the list for tracking chat completions.
+        # Each element is a dictionary with one of the following structures:
+        # completion:
+        #   {"role": "prompt/completion", "content": "<content>"}
+        # chat completion:
+        #   {"role": "user/assistant/system", "content": "<chat content>"}
+        self._completions: List[Dict[str, str]] = []
         # Set the system message, if any. There is only one system message and
-        # it is always the first element within a sequence of messages.
-        # self._messages = [{"role": "system", "content": value}]
+        # it is always the first element within a sequence of completions.
+        # self._completions = [{"role": "system", "content": value}]
         self.system_message = system_message
 
     def __len__(self) -> int:
-        return len(self._messages)
+        return len(self._completions)
 
     def __contains__(self, message: Dict[str, str]) -> bool:
-        return message in self._messages
+        return message in self._completions
 
     def __getitem__(self, index: int) -> Dict[str, str]:
-        return self._messages[index]
+        return self._completions[index]
 
     def __setitem__(self, index: int, message: Dict[str, str]) -> None:
-        self._messages[index] = message
+        self._completions[index] = message
 
     @property
-    def messages(self) -> List[Dict[str, str]]:
-        return self._messages
+    def completions(self) -> List[Dict[str, str]]:
+        return self._completions
 
     @property
     def system_message(self) -> Dict[str, str]:
@@ -61,22 +64,24 @@ class LlamaCppHistory:
     @system_message.setter
     def system_message(self, content: str) -> None:
         if content is None:
-            raise ValueError("Content cannot be None for system_message.")
+            # NOTE: Completions don't have system roles
+            self._system_message = None
+            return  # NOTE: Guard against setting system message
 
         self._system_message = {"role": "system", "content": content}
 
-        if self._messages:
-            self._messages[0] = self._system_message
+        if self._completions:
+            self._completions[0] = self._system_message
         else:
-            self._messages = [self._system_message]
+            self._completions = [self._system_message]
 
     def load(self) -> List[Dict[str, str]]:
         """Load the language models previous session"""
         try:
             with open(self.file_path, "r") as chat_session:
-                self._messages = json.load(chat_session)
+                self._completions = json.load(chat_session)
             print(f"LlamaCppHistory: Using cache: {self.file_path}")
-            return self._messages
+            return self._completions
         except (FileNotFoundError, json.JSONDecodeError):
             self.save()  # create the missing file
             print(f"LlamaCppHistory: Created new cache: {self.file_path}")
@@ -85,18 +90,18 @@ class LlamaCppHistory:
         """Save the language models current session"""
         try:
             with open(self.file_path, "w") as chat_session:
-                json.dump(self._messages, chat_session, indent=2)
+                json.dump(self._completions, chat_session, indent=2)
             print(f"LlamaCppHistory: Saved cache: {self.file_path}")
         except TypeError as e:
             print(f"LlamaCppHistory: Cache failed: {e}")
 
     def append(self, message: Dict[str, str]) -> None:
         """Append a message into the language models current session"""
-        self._messages.append(message)
+        self._completions.append(message)
 
     def insert(self, index: int, element: object) -> None:
         """Insert a message into the language models current session"""
-        self._messages.insert(index, element)
+        self._completions.insert(index, element)
 
     def pop(self, index: int = None) -> Dict[str, str]:
         """Pop a message from the language models current session"""
@@ -105,23 +110,25 @@ class LlamaCppHistory:
             raise IndexError("System message is at index 0 and cannot be popped")
         # Use default pop if index is None
         if index is None:
-            return self._messages.pop()
+            return self._completions.pop()
         # Return the popped message
-        return self._messages.pop(index)  # Raises index error if index is out of bounds
+        return self._completions.pop(
+            index
+        )  # Raises index error if index is out of bounds
 
     def replace(self, index: int, content: str) -> None:
         """Substitute a message within the language models current session"""
         try:
-            self._messages[index]["content"] = content
+            self._completions[index]["content"] = content
         except (IndexError, KeyError) as e:
             print(f"ModelHistoryReplace: Failed to substitute chat message: {e}")
 
     def reset(self) -> None:
         """Reset the language models current session. Warning: This is a destructive action."""
         if self.system_message:
-            self._messages = [self.system_message]
+            self._completions = [self.system_message]
         else:
-            self._messages = []
+            self._completions = []
 
     def prompt(self) -> str:
         """Prompt the user for input"""
