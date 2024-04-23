@@ -55,18 +55,20 @@ class LlamaCppClient:
             print()
 
     def stream_completion(self, prompt: str) -> str:
-        content = ""
-        # API only supports individual completions at the moment
+        # NOTE: The API only supports individual completions at the moment
         # Currently researching how to implement multi-prompting
+        content = ""
         generator = self.api.completion(prompt)
 
         print()  # Pad model output
+        self.console.print(Markdown("**completion**"))
         self.console.print(self.history.completions[-1]["content"], end="")
         # Handle the model's generated response
         for response in generator:
             if "content" in response:
-                content += response["content"]
-            self.console.print(response["content"], end="")
+                token = response["content"]
+                content += token
+            self.console.print(token, end="")
             sys.stdout.flush()
         print()  # Pad model output
 
@@ -80,9 +82,9 @@ class LlamaCppClient:
         self.console.print(Markdown("**assistant**"))
         for response in generator:
             if "content" in response["choices"][0]["delta"]:
-                content += response["choices"][0]["delta"]["content"]
-            # markdown = Markdown(content + block)
-            self.console.print(content, end="")
+                token = response["choices"][0]["delta"]["content"]
+                content += token
+            self.console.print(token, end="")
             sys.stdout.flush()
         print()  # Pad model output
 
@@ -96,7 +98,6 @@ class LlamaCppClient:
                 self.console.print(Markdown("**prompt**"))
                 prompt = self.history.prompt()
                 self.history.append({"role": "prompt", "content": prompt})
-                self.console.print(Markdown("**completion**"))
                 completion = self.stream_completion(prompt)
                 self.history.append({"role": "completion", "content": completion})
                 self.history.save()
@@ -124,8 +125,9 @@ class LlamaCppClient:
                 self.history.save()
             # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
             except KeyboardInterrupt:
-                completion = self.history.pop()
-                print("Popped", completion["role"], "element from history.")
+                if self.history.completions:
+                    completion = self.history.pop()
+                    print("Popped", completion["role"], "element from history.")
             # Adding EOFError prevents an exception and gracefully exits.
             except EOFError:
                 self.history.save()
