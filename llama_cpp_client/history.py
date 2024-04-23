@@ -108,13 +108,15 @@ class LlamaCppHistory:
         # Guard the models system message
         if self.system_message and index == 0:
             raise IndexError("System message is at index 0 and cannot be popped")
-        # Use default pop if index is None
-        if index is None:
-            return self._completions.pop()
-        # Return the popped message
-        return self._completions.pop(
-            index
-        )  # Raises index error if index is out of bounds
+        try:
+            # Use default pop if index is None
+            if index is None:
+                return self._completions.pop()
+            # Return the popped message
+            # NOTE: list.pop raises IndexError if index is out of bounds
+            return self._completions.pop(index)
+        except IndexError:
+            return {}  # No elements exist
 
     def replace(self, index: int, content: str) -> None:
         """Substitute a message within the language models current session"""
