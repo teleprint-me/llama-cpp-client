@@ -6,12 +6,9 @@ The `llama.cpp` client is a experimental front-end client library for interactin
 
 ## Features
 
-- [ ] Interact with the `llama.cpp` server using a simple api.
-- [ ] Interact with the `llama.cpp` server using a simple cli.
-- [ ] Interact with the `llama.cpp` server using a simple web ui.
+- [ ] Interact with the `llama.cpp` server using a simple api, cli, web ui.
 - [ ] Connect to `llama.cpp` server for text generation and conversation.
-- [ ] Utilize predefined grammars for precise text generation.
-- [ ] Define custom grammars to guide model behavior.
+- [ ] Utilize predefined grammars and custom grammars for precise text generation to guide model behavior.
 - [ ] Access function schemas for enabling function calls during interactions.
 
 **NOTE: All interfaces are currently a WIP (work in progress)**
