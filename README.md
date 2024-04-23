@@ -10,11 +10,15 @@ capabilities.
 
 ## Features
 
+- [ ] Interact with the `llama.cpp` server using a simple api.
+- [ ] Interact with the `llama.cpp` server using a simple cli.
 - [ ] Interact with the `llama.cpp` server using a simple web ui.
 - [ ] Connect to `llama.cpp` server for text generation and conversation.
 - [ ] Utilize predefined grammars for precise text generation.
 - [ ] Define custom grammars to guide model behavior.
 - [ ] Access function schemas for enabling function calls during interactions.
+
+**NOTE: All interfaces are currently a WIP (work in progress)**
 
 ## Getting Started
 
@@ -26,18 +30,28 @@ To get started with the `llama.cpp` client, follow these steps:
    ```sh
    git clone https://github.com/teleprint-me/llama-cpp-client
    cd llama-cpp-client
-   git clone https://github.com/ggerganov/llama.cpp
-   cd llama.cpp
    ```
 
    Note that `git` will ignore the `llama.cpp` repository.
 
+   ```sh
+   git clone https://github.com/ggerganov/llama.cpp
+   cd llama.cpp
+   ```
+
 2. **Build and install `llama.cpp`**: Use the provided instructions to build and
-   install `llama.cpp`. For example, you can use CMake to build the library with
-   CUBLAS support.
+   install `llama.cpp`. For example, you can use CMake to build the library with ROCm support. I personally prefer Vulkan when using AMD because Vulkan has better support for a wider range of GPU's than ROCm does.
+
+   Build the library with Vulkan support.
 
    ```sh
-   make LLAMA_CUBLAS=1  # Alternatively, you can use LLAMA_VULKAN=1
+   make LLAMA_VULKAN=1
+   ```
+
+   Build the library with CUDA support.
+
+   ```sh
+   make LLAMA_CUDA=1
    ```
 
 3. **Run the `llama.cpp` server**: Use the provided instructions to run the
@@ -52,10 +66,58 @@ To get started with the `llama.cpp` client, follow these steps:
    Note that you can extend the front end by running the server binary with
    `--path`.
 
-4. **Access the web UI**: Open your preferred web browser and visit
-   `localhost:8080` to access the `llama.cpp` client's web UI. From here, you
-   can interact with the `llama.cpp` server for text generation and
-   conversation.
+### WebUI
+
+**How to use the web user interface**
+
+Open your preferred web browser and visit `localhost:8080` to access the `llama.cpp` client's web UI. From here, you can interact with the `llama.cpp` server for text generation and conversation.
+
+**Note**: The WebUI is currently a limited prototype for completions.
+
+### CLI
+
+**How to use the command-line interface**
+
+```sh
+python -m llama_cpp_client.client -n llama-3-test --stop "<|eot_id|>"
+```
+
+### API
+
+**How to use the application programming interface**
+
+```python
+from llama_cpp_client.request import LlamaCppRequest
+
+# Initialize the LlamaCppRequest instance
+llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
+
+# Define the prompt for the model
+llama_prompt = "Once upon a time"
+
+# Prepare data for streaming request
+llama_data = {"prompt": llama_prompt, "stream": True}
+
+# Generate the model's response
+llama_generator = llama_cpp_request.stream("/completion", data=llama_data)
+
+# Handle the model's generated response
+content = ""
+for response in generator:
+   if "content" in response:
+      token = response["content"]
+      content += token
+      # Print each token to the user
+      print(token, end="")
+      sys.stdout.flush()
+
+# Add padding to the model's output
+print()
+```
+
+Check out the source code for more examples.
+
+#### Summary
 
 By following these steps, you should be able to get started with the `llama.cpp`
 client and begin exploring its capabilities. For more detailed documentation and
