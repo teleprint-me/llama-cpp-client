@@ -132,58 +132,6 @@ class LlamaCppClient:
                 exit()
 
 
-def get_current_weather(location: str, unit: str = "celsius"):
-    """
-    Get the current weather in a given location.
-
-    Parameters:
-    location (str): The city and state, e.g. San Francisco, CA
-    unit (str): The unit of temperature, can be either 'celsius' or 'fahrenheit'. Default is 'celsius'.
-
-    Returns:
-    str: A string that describes the current weather.
-    """
-
-    # This is a mock function, so let's return a mock weather report.
-    weather_report = f"The current weather in {location} is 20 degrees {unit}."
-    return weather_report
-
-
-def get_function(
-    completion: dict[str, str], functions: dict[str, Callable]
-) -> dict[str, Any]:
-    # Note: the JSON response may not always be valid; be sure to handle errors
-    name = completion["function_call"]["name"]
-    callback = functions[name]
-    arguments = json.loads(completion["function_call"]["arguments"])
-    content = callback(**arguments)
-    response = {
-        "role": "function",
-        "name": name,
-        "content": content,
-    }
-    return response
-
-
-function_schemas = [
-    {
-        "name": "get_current_weather",
-        "description": "Get the current weather in a given location",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "location": {
-                    "type": "string",
-                    "description": "The city and state, e.g. San Francisco, CA",
-                },
-                "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
-            },
-            "required": ["location"],
-        },
-    }
-]
-
-
 def get_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="A command-line interface for interacting with the llama language model."
