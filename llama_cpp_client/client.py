@@ -3,9 +3,7 @@ Module: llama_cpp_client.client
 """
 
 import argparse
-import json
 import sys
-from typing import Any, Callable
 
 from rich import pretty, print
 from rich.console import Console
