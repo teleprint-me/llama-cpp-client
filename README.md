@@ -98,12 +98,12 @@ llama_prompt = "Once upon a time"
 # Prepare data for streaming request
 llama_data = {"prompt": llama_prompt, "stream": True}
 
-# Generate the model's response
+# Request the models stream generator
 llama_generator = llama_cpp_request.stream("/completion", data=llama_data)
 
-# Handle the model's generated response
+# Generate the model's response
 content = ""
-for response in generator:
+for response in llama_generator:
    if "content" in response:
       token = response["content"]
       content += token
