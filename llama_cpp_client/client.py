@@ -37,22 +37,34 @@ class LlamaCppClient:
         )
         self.tokenizer = tokenizer or LlamaCppTokenizer(self.api.request)
         self.console = Console()
-        self._render_messages_once_on_start()
 
     @property
     def cursor(self) -> str:
         return "█ "
 
-    def _render_messages_once_on_start(self) -> None:
+    def _render_chat_completions_once_on_start(self) -> None:
         self.history.load()
         for message in self.history.messages:
             self.console.print(Markdown(f"**{message['role']}**"))
             self.console.print(message["content"])
             print()
 
+    def _render_completions_once_on_start(self) -> None:
+        self.history.load()
+        for message in self.history.messages:
+            completion = ""
+            if message["role"] == "prompt":
+                completion += message["content"]
+            if message["role"] == "completion":
+                completion += message["content"]
+            self.console.print(completion)
+            print()
+
     def stream_completion(self, prompt: str) -> None:
         content = ""
         block = self.cursor
+        # API only supports individual completions at the moment
+        # Currently researching how to implement multi-prompting
         generator = self.api.completion(prompt)
 
         # Handle the model's generated response
@@ -65,7 +77,9 @@ class LlamaCppClient:
                 live.update(content + block)
         print()  # Pad model output
 
-    def stream_chat_completion(self) -> None:
+        return content
+
+    def stream_chat_completion(self) -> str:
         content = ""
         block = self.cursor
         generator = self.api.chat_completion(self.history.messages)
@@ -82,16 +96,37 @@ class LlamaCppClient:
                 live.update(content + block, refresh=True)
         print()  # Pad model output
 
-        self.history.append({"role": "assistant", "content": content})
+        return content
+
+    def run_prompt(self) -> None:
+        self._render_completions_once_on_start()
+
+        while True:
+            try:
+                prompt = self.history.prompt()
+                self.history.append({"role": "prompt", "content": prompt})
+                self.stream_completion()
+                self.history.save()
+            # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
+            except KeyboardInterrupt:
+                message = self.history.pop()
+                print("Popped", message["role"], "message.")
+            # Adding EOFError prevents an exception and gracefully exits.
+            except EOFError:
+                self.history.save()
+                exit()
 
     def run_chat(self) -> None:
         """Feed structured input data for the language model to process."""
+        self._render_chat_completions_once_on_start()
+
         while True:
             try:
                 self.console.print(Markdown("**user**"))
                 content = self.history.prompt()
                 self.history.append({"role": "user", "content": content})
-                self.stream_chat_completion()
+                content = self.stream_chat_completion()
+                self.history.append({"role": "assistant", "content": content})
                 self.history.save()
             # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
             except KeyboardInterrupt:
