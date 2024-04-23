@@ -111,6 +111,14 @@ for response in llama_generator:
 print()
 ```
 
+Note that most of the Python API modules for `llama_cpp_client` can be executed as a CLI tool providing an example, test, and output sample all in one place.
+
+```sh
+python -m llama_cpp_client.request
+```
+
+The general idea is to keep the implementation as simple as possible for now. 
+
 Check out the source code for more examples.
 
 #### Summary
