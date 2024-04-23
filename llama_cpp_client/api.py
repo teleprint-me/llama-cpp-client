@@ -4,6 +4,8 @@ Module: llama_cpp_client.api
 
 from typing import Any, Dict, List
 
+import requests
+
 from llama_cpp_client.request import LlamaCppRequest
 
 
@@ -49,7 +51,10 @@ class LlamaCppAPI:
 
     @property
     def health(self) -> Dict[str, Any]:
-        return self.request.get("/health")
+        try:
+            return self.request.get("/health")
+        except requests.exceptions.ConnectionError as e:
+            return {"status": "error", "message": e}
 
     @property
     def slots(self) -> List[Dict[str, Any]]:
