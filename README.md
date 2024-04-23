@@ -2,11 +2,7 @@
 
 ## Description
 
-The `llama.cpp` client is a experimental front-end web app for interacting with
-`llama.cpp`, a powerful tool for natural language processing and text
-generation. This client enables seamless communication with the `llama.cpp`
-server, making it easy to integrate and interact with `llama.cpp`'s
-capabilities.
+The `llama.cpp` client is a experimental front-end client library for interacting with `llama.cpp`, a powerful tool for natural language processing and text generation. This client enables seamless communication with the `llama.cpp` server, making it easy to integrate and interact with `llama.cpp`'s capabilities.
 
 ## Features
 
