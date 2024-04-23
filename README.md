@@ -94,18 +94,24 @@ llama_data = {"prompt": llama_prompt, "stream": True}
 # Request the models stream generator
 llama_generator = llama_cpp_request.stream("/completion", data=llama_data)
 
+# Track completions
+completions = []
+
 # Generate the model's response
-content = ""
+llama_output = ""
 for response in llama_generator:
    if "content" in response:
       token = response["content"]
-      content += token
+      llama_output += token
       # Print each token to the user
       print(token, end="")
       sys.stdout.flush()
 
 # Add padding to the model's output
 print()
+
+# Append the completion
+completions.append({"prompt": llama_prompt, "output": llama_output})
 ```
 
 Note that most of the Python API modules for `llama_cpp_client` can be executed as a CLI tool providing an example, test, and output sample all in one place.
