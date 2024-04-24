@@ -37,7 +37,7 @@ class LlamaCppClient:
     def _render_completions_once_on_start(self) -> None:
         self.history.load()
         element = ""
-        for completion in self.history.completions:
+        for completion in self.history:
             if completion["role"] == "user":
                 element = ""
                 element += completion["content"]
@@ -49,7 +49,7 @@ class LlamaCppClient:
 
     def _render_chat_completions_once_on_start(self) -> None:
         self.history.load()
-        for completion in self.history.completions:
+        for completion in self.history:
             self.console.print(Markdown(f"**{completion['role']}**"))
             self.console.print(completion["content"])
             print()
@@ -57,7 +57,7 @@ class LlamaCppClient:
     def stream_completion(self) -> str:
         # NOTE: The API only supports individual completions at the moment
         # Currently researching how to implement multi-prompting
-        content = self.history.completions[-1]["content"]
+        content = self.history[-1]["content"]
         generator = self.api.completion(content)
 
         print()  # Pad model output
