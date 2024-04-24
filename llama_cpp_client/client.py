@@ -38,10 +38,10 @@ class LlamaCppClient:
         self.history.load()
         element = ""
         for completion in self.history.completions:
-            if completion["role"] == "prompt":
+            if completion["role"] == "user":
                 element = ""
                 element += completion["content"]
-            if completion["role"] == "completion":
+            if completion["role"] == "assistant":
                 element += completion["content"]
             self.console.print(Markdown(f"**{completion['role']}**"))
             self.console.print(element)
@@ -54,23 +54,23 @@ class LlamaCppClient:
             self.console.print(completion["content"])
             print()
 
-    def stream_completion(self, prompt: str) -> str:
+    def stream_completion(self) -> str:
         # NOTE: The API only supports individual completions at the moment
         # Currently researching how to implement multi-prompting
-        content = ""
-        generator = self.api.completion(prompt)
+        content = self.history.completions[-1]["content"]
+        generator = self.api.completion(content)
 
         print()  # Pad model output
         self.console.print(Markdown("**completion**"))
-        self.console.print(self.history.completions[-1]["content"], end="")
+        self.console.print(content, end="")
         # Handle the model's generated response
         for response in generator:
             if "content" in response:
                 token = response["content"]
                 content += token
-            self.console.print(token, end="")
-            sys.stdout.flush()
-        print()  # Pad model output
+                self.console.print(token, end="")
+                sys.stdout.flush()
+        print("\n")  # Pad model output
 
         return content
 
@@ -79,59 +79,65 @@ class LlamaCppClient:
         generator = self.api.chat_completion(self.history.completions)
 
         print()  # Pad model output
-        self.console.print(Markdown("**assistant**"))
+        self.console.print(Markdown("**chat completion**"))
         for response in generator:
             if "content" in response["choices"][0]["delta"]:
                 token = response["choices"][0]["delta"]["content"]
                 content += token
-            self.console.print(token, end="")
-            sys.stdout.flush()
-        print()  # Pad model output
+                self.console.print(token, end="")
+                sys.stdout.flush()
+        print("\n")  # Pad model output
 
         return content
 
-    def run_completions(self) -> None:
-        self._render_completions_once_on_start()
-
-        while True:
-            try:
-                self.console.print(Markdown("**prompt**"))
-                prompt = self.history.prompt()
-                self.history.append({"role": "prompt", "content": prompt})
-                completion = self.stream_completion(prompt)
-                self.history.append({"role": "completion", "content": completion})
-                self.history.save()
-            # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
-            except KeyboardInterrupt:
-                if self.history.completions:
-                    completion = self.history.pop()
-                    print("Popped", completion["role"], "element from history.")
-            # Adding EOFError prevents an exception and gracefully exits.
-            except EOFError:
-                self.history.save()
-                exit()
-
-    def run_chat_completions(self) -> None:
-        """Feed structured input data for the language model to process."""
-        self._render_chat_completions_once_on_start()
+    def run(self, completions_type: str):
+        if completions_type == "completions":
+            self._render_completions_once_on_start()
+        elif completions_type == "chat_completions":
+            self._render_chat_completions_once_on_start()
+        else:
+            raise ValueError(f"Unrecognized completions type: {completions_type}")
 
         while True:
             try:
                 self.console.print(Markdown("**user**"))
-                content = self.history.prompt()
-                self.history.append({"role": "user", "content": content})
-                content = self.stream_chat_completion()
-                self.history.append({"role": "assistant", "content": content})
+                prompt = self.history.prompt()
+                if not prompt:
+                    continue
+                self.history.append({"role": "user", "content": prompt})
+
+                if completions_type == "completions":
+                    completion = self.stream_completion()
+                elif completions_type == "chat_completions":
+                    completion = self.stream_chat_completion()
+                else:
+                    raise ValueError(
+                        f"Unrecognized completions type: {completions_type}"
+                    )
+
+                if not completion:
+                    continue
+                self.history.append({"role": "assistant", "content": completion})
                 self.history.save()
+
             # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
             except KeyboardInterrupt:
                 if self.history.completions:
                     completion = self.history.pop()
                     print("Popped", completion["role"], "element from history.")
+
             # Adding EOFError prevents an exception and gracefully exits.
             except EOFError:
                 self.history.save()
                 exit()
+
+    def run_completions(self) -> None:
+        """Convenience method for running completions"""
+        self.run("completions")
+
+    def run_chat_completions(self) -> None:
+        """Convenience method for running chat completions"""
+        self.run("chat_completions")
 
 
 def get_arguments() -> argparse.Namespace:
