@@ -90,6 +90,39 @@ class LlamaCppClient:
 
         return content
 
+    def prompt_user(self) -> None:
+        try:
+            self.console.print(Markdown("**user**"))
+            prompt = self.history.prompt()
+            self.history.append({"role": "user", "content": prompt})
+
+        # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
+        except KeyboardInterrupt:
+            if self.history.completions:
+                completion = self.history.pop()
+                print("\nPopped", completion["role"], "element from history.\n")
+
+        # Adding EOFError prevents an exception and gracefully exits.
+        except EOFError:
+            self.history.save()
+            exit()
+
+    def prompt_assistant(self, completions_type: str) -> None:
+        try:
+            if completions_type == "completions":
+                completion = self.stream_completion()
+            elif completions_type == "chat_completions":
+                completion = self.stream_chat_completion()
+            else:
+                raise ValueError(f"Unrecognized completions type: {completions_type}")
+
+            self.history.append({"role": "assistant", "content": completion})
+            self.history.save()
+        except KeyboardInterrupt:
+            if self.history.completions:
+                completion = self.history.pop()
+                print("\nPopped", completion["role"], "element from history.\n")
+
     def run(self, completions_type: str):
         if completions_type == "completions":
             self._render_completions_once_on_start()
@@ -99,37 +132,8 @@ class LlamaCppClient:
             raise ValueError(f"Unrecognized completions type: {completions_type}")
 
         while True:
-            try:
-                self.console.print(Markdown("**user**"))
-                prompt = self.history.prompt()
-                if not prompt:
-                    continue
-                self.history.append({"role": "user", "content": prompt})
-
-                if completions_type == "completions":
-                    completion = self.stream_completion()
-                elif completions_type == "chat_completions":
-                    completion = self.stream_chat_completion()
-                else:
-                    raise ValueError(
-                        f"Unrecognized completions type: {completions_type}"
-                    )
-
-                if not completion:
-                    continue
-                self.history.append({"role": "assistant", "content": completion})
-                self.history.save()
-
-            # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
-            except KeyboardInterrupt:
-                if self.history.completions:
-                    completion = self.history.pop()
-                    print("Popped", completion["role"], "element from history.")
-
-            # Adding EOFError prevents an exception and gracefully exits.
-            except EOFError:
-                self.history.save()
-                exit()
+            self.prompt_user()
+            self.prompt_assistant(completions_type)
 
     def run_completions(self) -> None:
         """Convenience method for running completions"""
