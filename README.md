@@ -38,13 +38,19 @@ To get started with the `llama.cpp` client, follow these steps:
    Build the library with Vulkan support.
 
    ```sh
-   make LLAMA_VULKAN=1
+   make LLAMA_VULKAN=1  # GPU
    ```
 
    Build the library with CUDA support.
 
    ```sh
-   make LLAMA_CUDA=1
+   make LLAMA_CUDA=1  # GPU
+   ```
+
+   Build the library with BLAS support.
+
+   ```sh
+   make LLAMA_OPENBLAS=1  # CPU
    ```
 
 3. **Run the `llama.cpp` server**: Use the provided instructions to run the
