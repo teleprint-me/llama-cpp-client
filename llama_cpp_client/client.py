@@ -96,16 +96,16 @@ class LlamaCppClient:
             prompt = self.history.prompt()
             self.history.append({"role": "user", "content": prompt})
 
-        # NOTE: Ctrl + c (keyboard) or Ctrl + d (eof) to exit
+        # NOTE: Ctrl + C (interrupt) to exit
         except KeyboardInterrupt:
+            self.history.save()
+            exit()
+
+        # Ctrl + D (eof) to pop a message from history and regenerate completion
+        except EOFError:
             if self.history.completions:
                 completion = self.history.pop()
                 print("\nPopped", completion["role"], "element from history.\n")
-
-        # Adding EOFError prevents an exception and gracefully exits.
-        except EOFError:
-            self.history.save()
-            exit()
 
     def prompt_assistant(self, completions_type: str) -> None:
         try:
