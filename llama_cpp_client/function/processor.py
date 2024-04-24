@@ -1,3 +1,7 @@
+"""
+Module: llama_cpp_client.function.processor
+"""
+
 import json
 from typing import Any, Callable
 
