@@ -78,7 +78,7 @@ class LlamaCppHistory:
         try:
             with open(self.file_path, "r") as chat_session:
                 self._completions = json.load(chat_session)
-            print(f"LlamaCppHistory: Using cache: {self.file_path}")
+            # print(f"LlamaCppHistory: Using cache: {self.file_path}")
             return self._completions
         except (FileNotFoundError, json.JSONDecodeError):
             self.save()  # create the missing file
