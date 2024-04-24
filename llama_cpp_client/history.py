@@ -30,11 +30,9 @@ class LlamaCppHistory:
         self.auto_suggest = AutoSuggestFromHistory()
 
         # Define the list for tracking chat completions.
-        # Each element is a dictionary with one of the following structures:
-        # completion:
-        #   {"role": "prompt/completion", "content": "<content>"}
-        # chat completion:
-        #   {"role": "user/assistant/system", "content": "<chat content>"}
+        # Each element is a dictionary with the following structure:
+        # completions:
+        #   {"role": "user/assistant/system", "content": "prompt/completion"}
         self._completions: List[Dict[str, str]] = []
         # Set the system message, if any. There is only one system message and
         # it is always the first element within a sequence of completions.
@@ -62,7 +60,7 @@ class LlamaCppHistory:
         return self._system_message
 
     @system_message.setter
-    def system_message(self, content: str) -> None:
+    def system_message(self, content: None | str) -> None:
         if content is None:
             # NOTE: Completions don't have system roles
             self._system_message = None
@@ -91,7 +89,7 @@ class LlamaCppHistory:
         try:
             with open(self.file_path, "w") as chat_session:
                 json.dump(self._completions, chat_session, indent=2)
-            print(f"LlamaCppHistory: Saved cache: {self.file_path}")
+            # print(f"LlamaCppHistory: Saved cache: {self.file_path}")
         except TypeError as e:
             print(f"LlamaCppHistory: Cache failed: {e}")
 
