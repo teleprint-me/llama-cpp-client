@@ -18,6 +18,30 @@ GET_CURRENT_WEATHER = {
     },
 }
 
+BINARY_ARITHMETIC = {
+    "name": "binary_arithmetic",
+    "description": "Perform binary arithmetic operations on two operands.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "left_op": {
+                "type": ["integer", "number"],
+                "description": "The left operand.",
+            },
+            "right_op": {
+                "type": ["integer", "number"],
+                "description": "The right operand.",
+            },
+            "operator": {
+                "type": "string",
+                "description": "The arithmetic operator. Supported operators are '+', '-', '*', '/', '%'.",
+                "enum": ["+", "-", "*", "/", "%"],
+            },
+        },
+        "required": ["left_op", "right_op", "operator"],
+    },
+}
+
 READ_FILE = {
     "name": "read_file",
     "description": "Reads the contents of a file and returns a substring based on optional line numbers.",
@@ -43,5 +67,6 @@ READ_FILE = {
 
 BUILTIN_FUNCTION_SCHEMAS = [
     GET_CURRENT_WEATHER,
+    BINARY_ARITHMETIC,
     READ_FILE,
 ]
