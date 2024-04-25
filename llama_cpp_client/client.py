@@ -26,12 +26,21 @@ class LlamaCppClient:
         pretty.install()
 
         # manage llama.cpp client instances
-        self.api = api or LlamaCppAPI()
-        self.history = history or LlamaCppHistory(
-            session_name="client",
-            system_message="My name is Llama. I am a supportive and helpful assistant.",
-        )
-        self.tokenizer = tokenizer or LlamaCppTokenizer(self.api.request)
+        self.api = api if api is not None else LlamaCppAPI()
+
+        if history is not None:
+            self.history = history
+        else:
+            self.history = LlamaCppHistory(
+                session_name="client",
+                system_message="My name is Llama. I am a helpful assistant.",
+            )
+
+        if tokenizer is not None:
+            self.tokenizer = tokenizer
+        else:
+            self.tokenizer = LlamaCppTokenizer(self.api.request)
+
         self.console = Console()
 
     def _render_completions_once_on_start(self) -> None:
@@ -255,13 +264,14 @@ def main():
     llama_cpp_tokenizer = LlamaCppTokenizer(llama_cpp_request)
 
     if args.completions:
-        args.system_message = None
-    llama_cpp_history = LlamaCppHistory(args.session_name, args.system_message)
+        llama_cpp_history = LlamaCppHistory(args.session_name)
+    else:
+        llama_cpp_history = LlamaCppHistory(args.session_name, args.system_message)
 
     llama_cpp_client = LlamaCppClient(
-        llama_cpp_api,
-        llama_cpp_history,
-        llama_cpp_tokenizer,
+        api=llama_cpp_api,
+        history=llama_cpp_history,
+        tokenizer=llama_cpp_tokenizer,
     )
     # `grammar`: Set grammar for grammar-based sampling (default: no grammar)
 
