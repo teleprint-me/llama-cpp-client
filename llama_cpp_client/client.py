@@ -52,7 +52,7 @@ class LlamaCppClient:
                 element += completion["content"]
             if completion["role"] == "assistant":
                 element += completion["content"]
-            self.console.print(Markdown(f"**{completion['role']}**"))
+            self.console.print(Markdown(f"**{completion['role']}**"), end="")
             self.console.print(element)
             print()
 
