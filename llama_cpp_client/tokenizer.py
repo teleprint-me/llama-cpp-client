@@ -43,7 +43,7 @@ class LlamaCppTokenizer:
 
 def get_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("prompt", type=str)
+    parser.add_argument("prompt", type=str, help="A string or file path used as input")
     parser.add_argument(
         "--base-url",
         type=str,
