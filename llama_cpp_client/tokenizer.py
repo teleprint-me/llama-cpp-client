@@ -17,14 +17,14 @@ class LlamaCppTokenizer:
         """
         self.llama_cpp_request = request or LlamaCppRequest()
 
-    def tokenize(self, content: str) -> List[int]:
+    def tokenize(self, content: str, add_special: bool = False) -> List[int]:
         """
         Tokenizes a given text using the server's tokenize endpoint.
 
         :param content: The text content to tokenize.
         :return: A list of token IDs.
         """
-        data = {"content": content}
+        data = {"content": content, "add_special": add_special}
         llama_cpp_response = self.llama_cpp_request.post("/tokenize", data=data)
         return llama_cpp_response.get("tokens", [])
 
@@ -54,6 +54,12 @@ def get_arguments() -> argparse.Namespace:
         type=str,
         default="8080",
         help="The servers port (default: 8080)",
+    )
+    parser.add_argument(
+        "-s",
+        "--special",
+        action="store_true",
+        help="Include special tokens.",
     )
     parser.add_argument(
         "-e",
@@ -86,15 +92,15 @@ def main():
 
     encodings = tokenizer.tokenize(args.prompt)
     if args.encoded:
-        print(f"Encoded: {encodings}")
+        print(encodings)
 
     # Detokenize the tokens
     decodings = tokenizer.detokenize(encodings)
     if args.decoded:
-        print(f"Decoded: {decodings}")
+        print(decodings)
 
     if args.length:
-        print(f"Length: {len(encodings)}")
+        print(len(encodings))
 
 
 if __name__ == "__main__":
