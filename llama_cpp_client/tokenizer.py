@@ -90,7 +90,7 @@ def main():
     # Initialize the LlamaCppTokenizer instance
     tokenizer = LlamaCppTokenizer(request=llama_cpp_request)
 
-    encodings = tokenizer.tokenize(args.prompt)
+    encodings = tokenizer.tokenize(args.prompt, args.special)
     if args.encoded:
         print(encodings)
 
