@@ -3,6 +3,7 @@ Module: llama_cpp_client.tokenizer
 """
 
 import argparse
+import pathlib
 from typing import List, Optional
 
 from llama_cpp_client.request import LlamaCppRequest
@@ -56,6 +57,12 @@ def get_arguments() -> argparse.Namespace:
         help="The servers port (default: 8080)",
     )
     parser.add_argument(
+        "-f",
+        "--file",
+        action="store_true",
+        help="Treat the prompt as a plaintext file",
+    )
+    parser.add_argument(
         "-s",
         "--special",
         action="store_true",
@@ -90,7 +97,14 @@ def main():
     # Initialize the LlamaCppTokenizer instance
     tokenizer = LlamaCppTokenizer(request=llama_cpp_request)
 
-    encodings = tokenizer.tokenize(args.prompt, args.special)
+    if args.file:
+        path = pathlib.Path(args.prompt)
+        with open(path, "r") as file:
+            content = file.read()
+        encodings = tokenizer.tokenize(content, args.special)
+    else:
+        encodings = tokenizer.tokenize(args.prompt, args.special)
+
     if args.encoded:
         print(encodings)
 
