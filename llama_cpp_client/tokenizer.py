@@ -2,6 +2,7 @@
 Module: llama_cpp_client.tokenizer
 """
 
+import argparse
 from typing import List, Optional
 
 from llama_cpp_client.request import LlamaCppRequest
@@ -39,20 +40,62 @@ class LlamaCppTokenizer:
         return llama_cpp_response.get("content", "")
 
 
-if __name__ == "__main__":
-    # Initialize the LlamaCppRequest instance
-    llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
+def get_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("prompt", type=str)
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        default="http://127.0.0.1",
+        help="The servers url (default: http://127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=str,
+        default="8080",
+        help="The servers port (default: 8080)",
+    )
+    parser.add_argument(
+        "-e",
+        "--encoded",
+        action="store_true",
+        help="Convert text prompt to encoding ids and print to stdout",
+    )
+    parser.add_argument(
+        "-d",
+        "--decoded",
+        action="store_true",
+        help="Convert text prompt to encoding ids and print to stdout",
+    )
+    parser.add_argument(
+        "-l",
+        "--length",
+        action="store_true",
+        help="Get the length of the input and print to stdout",
+    )
+    return parser.parse_args()
 
+
+def main():
+    args = get_arguments()
+
+    # Initialize the LlamaCppRequest instance
+    llama_cpp_request = LlamaCppRequest(base_url=args.base_url, port=args.port)
     # Initialize the LlamaCppTokenizer instance
     tokenizer = LlamaCppTokenizer(request=llama_cpp_request)
 
-    # Define the text to tokenize
-    text = "My name is Llama. I am a supportive and helpful assistant."
-
-    # Tokenize the text
-    tokens = tokenizer.tokenize(text)
-    print(f"Tokens: {tokens}")
+    encodings = tokenizer.tokenize(args.prompt)
+    if args.encoded:
+        print(f"Encoded: {encodings}")
 
     # Detokenize the tokens
-    detokenized_text = tokenizer.detokenize(tokens)
-    print(f"Detokenized Text: {detokenized_text}")
+    decodings = tokenizer.detokenize(encodings)
+    if args.decoded:
+        print(f"Decoded: {decodings}")
+
+    if args.length:
+        print(f"Length: {len(encodings)}")
+
+
+if __name__ == "__main__":
+    main()
