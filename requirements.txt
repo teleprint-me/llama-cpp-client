@@ -1,6 +1,6 @@
 blessed==1.20.0
 bpython==0.24
-certifi==2023.11.17
+certifi==2024.7.4
 charset-normalizer==3.3.2
 curtsies==0.4.2
 cwcwidth==0.1.9
