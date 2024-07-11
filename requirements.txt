@@ -1,6 +1,6 @@
 blessed==1.20.0
 bpython==0.24
-certifi==2023.11.17
+certifi==2024.7.4
 charset-normalizer==3.3.2
 curtsies==0.4.2
 cwcwidth==0.1.9
@@ -27,4 +27,4 @@ typing_extensions==4.9.0
 uc-micro-py==1.0.2
 urllib3==2.2.2
 wcwidth==0.2.12
-zipp==3.17.0
+zipp==3.19.1
