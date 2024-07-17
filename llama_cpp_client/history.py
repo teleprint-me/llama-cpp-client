@@ -34,9 +34,16 @@ class LlamaCppHistory:
         # completions:
         #   {"role": "user/assistant/system", "content": "prompt/completion"}
         self._completions: List[Dict[str, str]] = []
+
         # Set the system message, if any. There is only one system message and
         # it is always the first element within a sequence of completions.
         # self._completions = [{"role": "system", "content": value}]
+        if system_message is not None:
+            system_message_path = Path(system_message)
+            if system_message_path.exists():
+                system_message = system_message_path.open("r").read().rstrip()
+            else:
+                system_message = system_message
         self.system_message = system_message
 
     def __len__(self) -> int:

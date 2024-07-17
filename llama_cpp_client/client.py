@@ -167,7 +167,7 @@ def get_arguments() -> argparse.Namespace:
         "--system-message",
         type=str,
         default="My name is Llama. I am a supportive and helpful assistant.",
-        help="The language models system message",
+        help="The language models system message. Can be a string or plaintext file.",
     )
     parser.add_argument(
         "--base-url",
