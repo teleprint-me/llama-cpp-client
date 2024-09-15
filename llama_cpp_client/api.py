@@ -109,18 +109,20 @@ class LlamaCppAPI:
         if not self.data.get("stream"):
             return self.request.post(endpoint=endpoint, data=self.data)
 
-    @staticmethod
-    def sanitize(text: str) -> str:
+    def sanitize(self, text: str) -> str:
         """Escape special symbols from a given body of text."""
         # NOTE: This is a monkey patch and requires refining.
+        self.logger.debug(f"Pre-sanitization: {text}")
         body = ""
-        for symbol in text:
-            if symbol == "[":
-                symbol = "\\["
-            if symbol == "]":
-                symbol = "\\]"
+        pre_sanitization = html.escape(text)
+        for symbol in pre_sanitization:
+            symbol = {
+                "[": "\\[",  # &lbrack;
+                "]": "\\]",  # &rbrack;
+            }.get(symbol, symbol)
             body += symbol
-        return html.escape(body)
+        self.logger.debug(f"Post-sanitization: {body}")
+        return body
 
 
 if __name__ == "__main__":
