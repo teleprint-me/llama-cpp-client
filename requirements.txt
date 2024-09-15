@@ -1,6 +1,6 @@
 bpython
 isort
-ruff
+black
 gguf
 Jinja2
 numpy

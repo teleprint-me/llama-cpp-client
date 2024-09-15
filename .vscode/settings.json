@@ -38,7 +38,7 @@
   "python.languageServer": "Jedi",
   "python.analysis.typeCheckingMode": "strict",
   "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
     "editor.formatOnPaste": false,
     "editor.codeActionsOnSave": {
