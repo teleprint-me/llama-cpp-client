@@ -105,6 +105,7 @@ if __name__ == "__main__":
 
     # Define the prompt for the model
     prompt = "Once upon a time"
+    print(prompt, end="")
 
     # Prepare data for streaming request
     data = {"prompt": prompt, "stream": True}
