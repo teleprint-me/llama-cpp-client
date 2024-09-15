@@ -28,7 +28,7 @@
   },
   "notebook.formatOnSave.enabled": true,
   "notebook.codeActionsOnSave": {
-    "source.organizeImports": true
+    "source.organizeImports": "explicit"
   },
   "python.analysis.extraPaths": [
     "${workspaceFolder}/.venv/bin",
