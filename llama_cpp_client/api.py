@@ -29,12 +29,13 @@ class LlamaCppAPI:
         seed: int = 1337,
         stream: bool = True,
         cache_prompt: bool = True,
-        **kwargs,  # Additional optional parameters
+        **kwargs: Any,  # Additional optional parameters
     ) -> None:
-        # manage llama.cpp client instances
-        self.request = request or LlamaCppRequest()
+        """Initialize the API with default model parameters and request handler."""
+        log_level = kwargs.get("log_level", logging.INFO)
+        self.request = request or LlamaCppRequest(log_level=log_level)
 
-        # set model hyper parameters
+        # Set model hyperparameters
         self.data = {
             "prompt": "",
             "messages": [],
@@ -51,21 +52,22 @@ class LlamaCppAPI:
             "cache_prompt": cache_prompt,
         }
 
-        # Update self.data with any additional parameters provided via kwargs
+        # Update self.data with any additional parameters from kwargs
         self.data.update(kwargs)
 
-        # Debugging is disabled by default
-        log_level = kwargs.get("log_level", logging.INFO)
+        # Setup logger
         self.logger = get_default_logger("LlamaCppAPI", level=log_level)
+        self.logger.debug("Initialized LlamaCppAPI instance.")
 
     @property
     def health(self) -> Dict[str, Any]:
+        """Check the health status of the API."""
         try:
             self.logger.debug("Fetching health status")
             return self.request.get("/health")
         except requests.exceptions.ConnectionError as e:
-            self.logger.error(f"ConnectionError: {e}")
-            return {"status": "error", "message": e}
+            self.logger.error(f"Connection error while fetching health status: {e}")
+            return {"status": "error", "message": str(e)}
 
     @property
     def slots(self) -> List[Dict[str, Any]]:
@@ -74,90 +76,113 @@ class LlamaCppAPI:
         return self.request.get("/slots")
 
     def get_ctx_size(self, slot: int = 0) -> int:
-        """Get the language models max positional embeddings"""
-        # NOTE: Return -1 to indicated an error occurred
+        """Get the language model's max positional embeddings."""
+        self.logger.debug(f"Fetching context size for slot: {slot}")
         return self.slots[slot].get("n_ctx", -1)
 
     def get_model(self, slot: int = 0) -> str:
-        """Get the language models file path"""
-        # NOTE: A slot is allocated to a individual user
+        """Get the language model's file path for the given slot."""
+        self.logger.debug(f"Fetching model for slot: {slot}")
         return self.slots[slot].get("model", "")
 
     def get_prompt(self, slot: int = 0) -> str:
-        """Get the language models system prompt"""
+        """Get the system prompt for the language model in the given slot."""
+        self.logger.debug(f"Fetching system prompt for slot: {slot}")
         return self.slots[slot].get("prompt", "")
 
     def completion(self, prompt: str) -> Any:
-        """Get a prediction given a prompt"""
+        """Send a completion request to the API using the given prompt."""
         self.logger.debug(f"Sending completion request with prompt: {prompt}")
-        endpoint = "/completion"
         self.data["prompt"] = prompt
-        self.logger.debug(f"Completion request data: {self.data}")
+        self.logger.debug(f"Completion request payload: {self.data}")
 
+        endpoint = "/completion"
         if self.data.get("stream"):
+            self.logger.debug("Streaming completion request")
             return self.request.stream(endpoint=endpoint, data=self.data)
         else:
+            self.logger.debug("Sending non-streaming completion request")
             return self.request.post(endpoint=endpoint, data=self.data)
 
     def chat_completion(self, messages: List[Dict[str, str]]) -> Any:
-        """Get a OpenAI ChatML compatible prediction given a sequence of messages"""
-        endpoint = "/v1/chat/completions"
+        """Send a ChatML-compatible chat completion request to the API."""
+        self.logger.debug(f"Sending chat completion request with messages: {messages}")
         self.data["messages"] = messages
 
+        endpoint = "/v1/chat/completions"
         if self.data.get("stream"):
+            self.logger.debug("Streaming chat completion request")
             return self.request.stream(endpoint=endpoint, data=self.data)
-        if not self.data.get("stream"):
+        else:
+            self.logger.debug("Sending non-streaming chat completion request")
             return self.request.post(endpoint=endpoint, data=self.data)
 
     def sanitize(self, text: str) -> str:
-        """Escape special symbols from a given body of text."""
-        self.logger.debug(f"Pre-sanitization: {text}")
+        """Escape special symbols in a given text."""
+        self.logger.debug(f"Sanitizing text: {text}")
+        sanitized_text = html.escape(text)
         body = []
-        pre_sanitization = html.escape(text)
-        for symbol in pre_sanitization:
+
+        for symbol in sanitized_text:
             symbol = {
                 "[": "\\[",  # &lbrack;
                 "]": "\\]",  # &rbrack;
             }.get(symbol, symbol)
             body.append(symbol)
-        sanitized_text = "".join(body)
-        self.logger.debug(f"Post-sanitization: {sanitized_text}")
-        return sanitized_text
+
+        final_sanitized_text = "".join(body)
+        self.logger.debug(f"Sanitized text: {final_sanitized_text}")
+        return final_sanitized_text
 
 
 if __name__ == "__main__":
+    import argparse
     import sys  # Allow streaming to stdout
 
     from rich import print  # Decorate output
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-a", "--assertion", help="Enable assertions", action="store_true"
+    )
+    parser.add_argument("-d", "--debug", help="Enable debugging", action="store_true")
+    args = parser.parse_args()
+
+    log_level = logging.DEBUG if args.debug else logging.INFO
+
     # Create an instance of LlamaCppAPI
     # llama_api = LlamaCppAPI(n_predict=45, log_level=logging.DEBUG)
-    llama_api = LlamaCppAPI(n_predict=45)
+    llama_api = LlamaCppAPI(n_predict=45, log_level=log_level)
 
-    # Example: Get health status of the Llama.cpp server
-    health_status = llama_api.health
-    print("Health Status:", health_status)
+    if args.assertion:
+        assert (
+            llama_api.sanitize("[INST] Test [/INST]") == "\\[INST\\] Test \\[/INST\\]"
+        )
+        assert (
+            llama_api.sanitize("This is [example] text.")
+            == "This is \\[example\\] text."
+        )
+        assert llama_api.sanitize("No brackets here!") == "No brackets here!"
 
-    # Example: Get slots processing state
-    slots_state = llama_api.slots
-    # using json.dumps() seems to be causing conflicts with rich.print()
-    print("Slots State:", slots_state)  # this works fine
+    if args.debug:
+        # Example: Get health status of the Llama.cpp server
+        print("Health Status:", llama_api.health)
+        # Example: Get slots processing state
+        print("Slots State:", llama_api.slots)  # this works fine
 
-    # Example: Get model file path for a specific slot
-    slot_index = 0
-    model_path = llama_api.get_model(slot=slot_index)
-    print(f"Model Path for Slot {slot_index}: {model_path}")
+        # Example: Get model file path for a specific slot
+        slot_index = 0
+        model_path = llama_api.get_model(slot=slot_index)
+        print(f"Model Path for Slot {slot_index}: {model_path}")
 
-    assert llama_api.sanitize("[INST] Test [/INST]") == "\\[INST\\] Test \\[/INST\\]"
-    assert (
-        llama_api.sanitize("This is [example] text.") == "This is \\[example\\] text."
-    )
-    assert llama_api.sanitize("No brackets here!") == "No brackets here!"
+        # Example: Get prompt for a specific slot
+        prompt = llama_api.get_prompt(slot=slot_index)
+        prompt = llama_api.sanitize(prompt)
+        print(f"Prompt for Slot {slot_index}: {prompt}")
 
-    # Example: Get prompt for a specific slot
-    prompt = llama_api.get_prompt(slot=slot_index)
-    prompt = llama_api.sanitize(prompt)
-    print(f"Prompt for Slot {slot_index}: {prompt}")
+    # ---
+    print("Running completion...")
+    # ---
 
     # Example: Generate prediction given a prompt
     prompt = "Once upon a time"
@@ -174,6 +199,10 @@ if __name__ == "__main__":
             print(token, end="")
             sys.stdout.flush()
     print()  # Add padding to the model's output
+
+    # ---
+    print("\nRunning chat completion...")
+    # ---
 
     # Example: Generate chat completion given a sequence of messages
     messages = [
