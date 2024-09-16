@@ -131,6 +131,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p", "--prompt", help="Model input.", default="Once upon a time"
     )
+    parser.add_argument(
+        "-n", "--predict", help="Tokens generated.", default=-1, type=int
+    )
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.debug else logging.INFO
@@ -144,7 +147,7 @@ if __name__ == "__main__":
     print(args.prompt, end="")
 
     # Prepare data for streaming request
-    data = {"prompt": args.prompt, "stream": True}
+    data = {"prompt": args.prompt, "n_predict": args.predict, "stream": True}
 
     # Generate the model's response
     generator = llama_cpp_request.stream("/completion", data=data)
