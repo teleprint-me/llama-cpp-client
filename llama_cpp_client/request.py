@@ -5,9 +5,12 @@ Module: llama_cpp_client.request
 """
 
 import json
+import logging
 from typing import Any, Dict, Generator
 
 import requests
+
+from llama_cpp_client.logger import get_default_logger
 
 
 class StreamNotAllowedError(Exception):
@@ -23,6 +26,7 @@ class LlamaCppRequest:
         base_url: str = "http://127.0.0.1",
         port: str = "8080",
         headers: Dict[str, str] = None,
+        log_level: int = None,
     ):
         """
         Initialize the LlamaCppRequest instance.
@@ -33,6 +37,8 @@ class LlamaCppRequest:
         """
         self.base_url = f"{base_url}:{port}"
         self.headers = headers or {"Content-Type": "application/json"}
+        log_level = log_level if log_level else logging.INFO
+        self.logger = get_default_logger("LlamaCppRequest", level=log_level)
 
     def _handle_response(self, response: requests.Response) -> Any:
         """
@@ -95,8 +101,16 @@ class LlamaCppRequest:
 
         for line in response.iter_lines():
             if line:
+                self.logger.debug(f"{line}")  # debug every line
                 chunk = line[len("data: ") :]
-                yield json.loads(chunk)  # convert extracted chunk to dict
+                # Handle the special case where the chunk is "[DONE]"
+                if chunk == b"[DONE]":
+                    break  # or yield a specific signal if necessary
+                try:
+                    yield json.loads(chunk)  # convert extracted chunk to dict
+                except json.JSONDecodeError as e:
+                    self.logger.error(f"Failed to decode JSON chunk: {chunk}")
+                    raise e
 
 
 if __name__ == "__main__":
