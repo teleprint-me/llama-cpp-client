@@ -131,7 +131,8 @@ if __name__ == "__main__":
     from rich import print  # Decorate output
 
     # Create an instance of LlamaCppAPI
-    llama_api = LlamaCppAPI(n_predict=45, log_level=logging.DEBUG)
+    # llama_api = LlamaCppAPI(n_predict=45, log_level=logging.DEBUG)
+    llama_api = LlamaCppAPI(n_predict=45)
 
     # Example: Get health status of the Llama.cpp server
     health_status = llama_api.health
