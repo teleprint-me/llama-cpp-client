@@ -123,17 +123,28 @@ class LlamaCppRequest:
 
 
 if __name__ == "__main__":
+    import argparse
     import sys
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--debug", help="Enable debugging", action="store_true")
+    parser.add_argument(
+        "-p", "--prompt", help="Model input.", default="Once upon a time"
+    )
+    args = parser.parse_args()
+
+    log_level = logging.DEBUG if args.debug else logging.INFO
+
     # Initialize the LlamaCppRequest instance
-    llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
+    llama_cpp_request = LlamaCppRequest(
+        base_url="http://127.0.0.1", port="8080", log_level=log_level
+    )
 
     # Define the prompt for the model
-    prompt = "Once upon a time"
-    print(prompt, end="")
+    print(args.prompt, end="")
 
     # Prepare data for streaming request
-    data = {"prompt": prompt, "stream": True}
+    data = {"prompt": args.prompt, "stream": True}
 
     # Generate the model's response
     generator = llama_cpp_request.stream("/completion", data=data)
