@@ -34,11 +34,14 @@ class LlamaCppRequest:
         :param base_url: The base URL of the server.
         :param port: The port number to use.
         :param headers: Optional headers to include in requests.
+        :param log_level: The log level for this instance (e.g., logging.DEBUG).
         """
         self.base_url = f"{base_url}:{port}"
         self.headers = headers or {"Content-Type": "application/json"}
-        log_level = log_level if log_level else logging.INFO
-        self.logger = get_default_logger("LlamaCppRequest", level=log_level)
+        self.logger = get_default_logger(
+            "LlamaCppRequest", level=log_level or logging.INFO
+        )
+        self.logger.debug("Initialized LlamaCppRequest instance.")
 
     def _handle_response(self, response: requests.Response) -> Any:
         """
@@ -47,7 +50,7 @@ class LlamaCppRequest:
         :param response: The HTTP response object.
         :return: The parsed JSON response.
         """
-        # Raise HTTP error if response status code is not OK (2xx)
+        self.logger.debug(f"Received response with status {response.status_code}")
         response.raise_for_status()
         return response.json()
 
@@ -59,12 +62,11 @@ class LlamaCppRequest:
         :param params: Optional query parameters to include in the request.
         :return: The parsed JSON response.
         """
-        # NOTE: Unsure of whether to use params or data here.
-        # Intuition is telling me it should probably be data.
         if params and params.get("stream", False):
             raise StreamNotAllowedError()
 
         url = f"{self.base_url}{endpoint}"
+        self.logger.debug(f"GET request to {url} with params: {params}")
         response = requests.get(url, params=params, headers=self.headers)
         return self._handle_response(response)
 
@@ -80,34 +82,41 @@ class LlamaCppRequest:
             raise StreamNotAllowedError()
 
         url = f"{self.base_url}{endpoint}"
+        self.logger.debug(f"POST request to {url} with data: {data}")
         response = requests.post(url, json=data, headers=self.headers)
         return self._handle_response(response)
 
     def stream(
-        self, endpoint: str, data: Dict[str, Any] = None
+        self, endpoint: str, data: Dict[str, Any]
     ) -> Generator[Dict[str, Any], None, None]:
         """
         Stream an HTTP request.
 
         :param endpoint: The API endpoint to stream to.
-        :param data: Data to be sent with the request.
+        :param data: Data to be sent with the request (must include 'stream': True).
         :return: A generator of response data.
         """
+        if not isinstance(data, dict):
+            raise TypeError("Data must be a dictionary containing 'stream': True.")
         if not data.get("stream", True):
             raise ValueError("Stream must be set to True for streaming requests.")
 
         url = f"{self.base_url}{endpoint}"
+        self.logger.debug(f"Streaming request to {url} with data: {data}")
+
         response = requests.post(url, json=data, headers=self.headers, stream=True)
+        response.raise_for_status()
 
         for line in response.iter_lines():
             if line:
-                self.logger.debug(f"{line}")  # debug every line
                 chunk = line[len("data: ") :]
-                # Handle the special case where the chunk is "[DONE]"
                 if chunk == b"[DONE]":
-                    break  # or yield a specific signal if necessary
+                    self.logger.debug("Streaming complete: [DONE] signal received.")
+                    break
                 try:
-                    yield json.loads(chunk)  # convert extracted chunk to dict
+                    decoded_chunk = json.loads(chunk)
+                    self.logger.debug(f"Stream chunk received: {decoded_chunk}")
+                    yield decoded_chunk
                 except json.JSONDecodeError as e:
                     self.logger.error(f"Failed to decode JSON chunk: {chunk}")
                     raise e
