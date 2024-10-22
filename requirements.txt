@@ -9,3 +9,5 @@ Pygments
 pyxdg
 requests
 rich
+tiktoken
+openai
