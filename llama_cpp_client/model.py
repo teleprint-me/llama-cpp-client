@@ -7,26 +7,49 @@ llama_cpp_client/model.py
     - OpenAI's GPT-3.5
 """
 
+import json
+import os
+import sys
+from typing import Any, Callable
+
+import dotenv
 from openai import OpenAI
 
-# Configure the client for llama.cpp
-client = OpenAI(
-    base_url="http://localhost:8080/v1",  # Local API server for llama.cpp
-    api_key="sk-no-key-required",  # No real key required for llama.cpp)
-)
+# Load environment variables from a .env file if available
+if dotenv.load_dotenv(".env"):
+    api_key = os.getenv("OPENAI_API_KEY")
+else:
+    raise ValueError("EnvironmentError: Failed to load `OPENAI_API_KEY`")
 
-# Define the conversation history in the messages list
-response = client.chat.completions.create(
-    model="gpt-3.5-turbo",  # Use a supported llama.cpp model
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Write a limerick about Python exceptions."},
-    ],
-    stream=True,
-)
+if api_key == "sk-no-key-required":
+    # Correct base URL for llama.cpp
+    base_url = "http://localhost:8080/v1"
 
-# Print out the generated response
+# Set up the OpenAI API configuration
+client = OpenAI(api_key=api_key, base_url=base_url)
+
+# Define the conversation history
+messages = [
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": "Write a limerick about Python exceptions."},
+]
+
+# Request the completion with streaming
 try:
-    print(response.choices[0].message.content)
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",  # Use the model supported by llama.cpp
+        messages=messages,
+        stream=True,  # Enable streaming mode
+    )
+
+    # Stream and print the responses as they arrive
+    for chunk in response:
+        chunk_message = chunk.choices[0].delta.content
+        if chunk_message:
+            print(
+                chunk_message, end=""
+            )  # Stream print without newline until completion
+            sys.stdout.flush()
+    print()  # add newline
 except Exception as e:
     print(f"An error occurred: {e}")
