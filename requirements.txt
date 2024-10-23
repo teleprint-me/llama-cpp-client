@@ -12,3 +12,4 @@ rich
 tiktoken
 openai
 python-dotenv
+jsonpycraft
