@@ -14,6 +14,8 @@ from typing import Any, Callable
 
 import dotenv
 from openai import OpenAI
+from openai.types.chat.chat_completion import ChatCompletionMessage
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 
 # Load environment variables from a .env file if available
 if dotenv.load_dotenv(".env"):
@@ -37,7 +39,7 @@ messages = [
 # Request the completion with streaming
 try:
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",  # Use the model supported by llama.cpp
+        model="gpt-4o-mini",  # Default to GPT-4o
         messages=messages,
         stream=True,  # Enable streaming mode
     )
@@ -46,9 +48,8 @@ try:
     for chunk in response:
         chunk_message = chunk.choices[0].delta.content
         if chunk_message:
-            print(
-                chunk_message, end=""
-            )  # Stream print without newline until completion
+            # Stream print without newline until completion
+            print(chunk_message, end="")
             sys.stdout.flush()
     print()  # add newline
 except Exception as e:
