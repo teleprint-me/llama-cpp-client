@@ -11,3 +11,4 @@ requests
 rich
 tiktoken
 openai
+python-dotenv
