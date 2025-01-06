@@ -9,7 +9,7 @@ import sys
 
 from rich import pretty, print
 from rich.console import Console
-from rich.markdown import Markdown
+from rich.markdown import Markdown, Panel
 
 from llama_cpp_client.api import LlamaCppAPI
 from llama_cpp_client.history import LlamaCppHistory
@@ -55,15 +55,15 @@ class LlamaCppClient:
             if completion["role"] == "assistant":
                 element += completion["content"]
             self.console.print(Markdown(f"**{completion['role']}**"), end="")
-            self.console.print(element)
+            self.console.print(Markdown(element), end="")
             print()
 
     def _render_chat_completions_once_on_start(self) -> None:
         self.history.load()
         for completion in self.history:
-            self.console.print(Markdown(f"**{completion['role']}**"))
-            self.console.print(completion["content"])
-            print()
+            markdown = Markdown(completion["content"])
+            panel = Panel(markdown, title=completion["role"], title_align="left")
+            self.console.print(panel)
 
     def stream_completion(self) -> str:
         # NOTE: The API only supports individual completions at the moment
