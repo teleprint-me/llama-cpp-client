@@ -3,7 +3,7 @@
   "editor.stickyTabStops": true,
   "editor.tabCompletion": "on",
   "editor.wordWrap": "on",
-  "editor.fontSize": 12,
+  "editor.fontSize": 10,
   "editor.fontFamily": "'Noto Sans Mono', 'Source Code Pro', 'Droid Sans Mono'",
   "terminal.integrated.stickyScroll.enabled": false,
   "[html]": {
