@@ -59,6 +59,10 @@ class LlamaCppAPI:
         self.logger = get_default_logger("LlamaCppAPI", level=log_level)
         self.logger.debug("Initialized LlamaCppAPI instance.")
 
+    def error(self, code: int, message: str, type: str) -> dict[str, Any]:
+        """Return a dictionary representing an error response."""
+        return {"error": {"code": code, "message": message, "type": type}}
+
     @property
     def health(self) -> Dict[str, Any]:
         """Check the health status of the API."""
@@ -66,29 +70,47 @@ class LlamaCppAPI:
             self.logger.debug("Fetching health status")
             return self.request.get("/health")
         except requests.exceptions.ConnectionError as e:
-            self.logger.error(f"Connection error while fetching health status: {e}")
-            return {"status": "error", "message": str(e)}
+            self.logger.debug(f"Connection error while fetching health status: {e}")
+            return self.error(500, e, "unavailable_error")
 
     @property
     def slots(self) -> List[Dict[str, Any]]:
         """Get the current slots processing state."""
-        self.logger.debug("Fetching slot states")
-        return self.request.get("/slots")
+        try:
+            self.logger.debug("Fetching slot states")
+            return self.request.get("/slots")
+        except requests.exceptions.HTTPError as e:
+            self.logger.debug("Error fetching slot states")
+            return self.error(501, e, "unavailable_error")
 
-    def get_ctx_size(self, slot: int = 0) -> int:
-        """Get the language model's max positional embeddings."""
-        self.logger.debug(f"Fetching context size for slot: {slot}")
-        return self.slots[slot].get("n_ctx", -1)
-
-    def get_model(self, slot: int = 0) -> str:
+    @property
+    def models(self) -> dict[str, Any]:
         """Get the language model's file path for the given slot."""
-        self.logger.debug(f"Fetching model for slot: {slot}")
-        return self.slots[slot].get("model", "")
+        self.logger.debug("Fetching models list")
+        return self.request.get("/v1/models")
+
+    def get_model_path(self, slot: int = 0) -> str:
+        return self.models["data"][slot]["id"]
+
+    def get_vocab_size(self, slot: int = 0) -> int:
+        """Get the language model's vocab size."""
+        return self.models["data"][slot]["meta"]["n_vocab"]
+
+    def get_context_size(self, slot: int = 0) -> int:
+        """Get the language model's max context length."""
+        return self.models["data"][slot]["meta"]["n_ctx_train"]
+
+    def get_embed_size(self, slot: int = 0) -> int:
+        """Get the language model's max positional embeddings."""
+        return self.models["data"][slot]["meta"]["n_embd"]
 
     def get_prompt(self, slot: int = 0) -> str:
         """Get the system prompt for the language model in the given slot."""
-        self.logger.debug(f"Fetching system prompt for slot: {slot}")
-        return self.slots[slot].get("prompt", "")
+        try:
+            self.logger.debug(f"Fetching system prompt for slot: {slot}")
+            return self.slots[slot]["prompt"]
+        except KeyError:
+            return self.slots["error"]["message"]
 
     def completion(self, prompt: str) -> Any:
         """Send a completion request to the API using the given prompt."""
