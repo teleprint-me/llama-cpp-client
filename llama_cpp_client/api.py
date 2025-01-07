@@ -112,17 +112,26 @@ class LlamaCppAPI:
         except KeyError:
             return self.slots["error"]["message"]
 
-    def tokenize(self, content: str, add_special: bool = False) -> List[int]:
+    def tokenize(
+        self,
+        content: str,
+        add_special: bool = False,
+        with_pieces: bool = False,
+    ) -> List[int]:
         """Tokenizes a given text using the server's tokenize endpoint."""
         self.logger.debug(f"Tokenizing: {content}")
-        data = {"content": content, "add_special": add_special}
+        data = {
+            "content": content,
+            "add_special": add_special,
+            "with_pieces": with_pieces,
+        }
         response = self.request.post("/tokenize", data=data)
         return response.get("tokens", [])
 
-    def detokenize(self, tokens: List[int]) -> str:
+    def detokenize(self, token_ids: List[int]) -> str:
         """Detokenizes a given sequence of token IDs using the server's detokenize endpoint."""
-        self.logger.debug(f"Detokenizing: {tokens}")
-        data = {"tokens": tokens}
+        self.logger.debug(f"Detokenizing: {token_ids}")
+        data = {"tokens": token_ids}
         response = self.request.post("/detokenize", data=data)
         return response.get("content", "")
 
