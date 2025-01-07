@@ -71,8 +71,6 @@ class LlamaCppClient:
         # Currently researching how to implement multi-prompting
         content = self.history[-1]["content"]
         generator = self.api.completion(content)
-
-        # Handle the model's generated response
         with Live(console=self.console, vertical_overflow="visible") as live:
             for response in generator:
                 if "content" in response:
@@ -82,13 +80,11 @@ class LlamaCppClient:
                     # panel = Panel(markdown, title="Completion", title_align="left")
                     live.update(markdown, refresh=True)
                     sys.stdout.flush()
-
         return content
 
     def stream_chat_completion(self) -> str:
         content = ""
         generator = self.api.chat_completion(self.history.completions)
-
         with Live(console=self.console, vertical_overflow="visible") as live:
             for response in generator:
                 if "content" in response["choices"][0]["delta"]:
@@ -98,7 +94,6 @@ class LlamaCppClient:
                     panel = Panel(markdown, title="ChatCompletion", title_align="left")
                     live.update(panel, refresh=True)
                     sys.stdout.flush()
-
         return content
 
     def prompt_user(self) -> None:
