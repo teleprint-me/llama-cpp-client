@@ -9,6 +9,7 @@ import sys
 
 from rich import pretty, print
 from rich.console import Console
+from rich.live import Live
 from rich.markdown import Markdown, Panel
 
 from llama_cpp_client.api import LlamaCppAPI
@@ -54,9 +55,9 @@ class LlamaCppClient:
                 element += completion["content"]
             if completion["role"] == "assistant":
                 element += completion["content"]
-            self.console.print(Markdown(f"**{completion['role']}**"), end="")
-            self.console.print(Markdown(element), end="")
-            print()
+            markdown = Markdown(element)
+            panel = Panel(markdown, title=completion["role"], title_align="left")
+            self.console.print(panel, end="")
 
     def _render_chat_completions_once_on_start(self) -> None:
         self.history.load()
@@ -71,17 +72,16 @@ class LlamaCppClient:
         content = self.history[-1]["content"]
         generator = self.api.completion(content)
 
-        print()  # Pad model output
-        self.console.print(Markdown("**completion**"))
-        self.console.print(content, end="")
         # Handle the model's generated response
-        for response in generator:
-            if "content" in response:
-                token = response["content"]
-                content += token
-                self.console.print(token, end="")
-                sys.stdout.flush()
-        print("\n")  # Pad model output
+        with Live(console=self.console, vertical_overflow="visible") as live:
+            for response in generator:
+                if "content" in response:
+                    token = response["content"]
+                    content += token
+                    markdown = Markdown(content)
+                    # panel = Panel(markdown, title="Completion", title_align="left")
+                    live.update(markdown, refresh=True)
+                    sys.stdout.flush()
 
         return content
 
@@ -89,15 +89,15 @@ class LlamaCppClient:
         content = ""
         generator = self.api.chat_completion(self.history.completions)
 
-        print()  # Pad model output
-        self.console.print(Markdown("**chat completion**"))
-        for response in generator:
-            if "content" in response["choices"][0]["delta"]:
-                token = response["choices"][0]["delta"]["content"]
-                content += token
-                self.console.print(token, end="")
-                sys.stdout.flush()
-        print("\n")  # Pad model output
+        with Live(console=self.console, vertical_overflow="visible") as live:
+            for response in generator:
+                if "content" in response["choices"][0]["delta"]:
+                    token = response["choices"][0]["delta"]["content"]
+                    content += token
+                    markdown = Markdown(content)
+                    panel = Panel(markdown, title="ChatCompletion", title_align="left")
+                    live.update(panel, refresh=True)
+                    sys.stdout.flush()
 
         return content
 
