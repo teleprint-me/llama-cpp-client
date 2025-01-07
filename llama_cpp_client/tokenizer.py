@@ -1,4 +1,6 @@
 """
+Copyright © 2023 Austin Berrio
+
 Module: llama_cpp_client.tokenizer
 """
 
