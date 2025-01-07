@@ -32,25 +32,38 @@ To get started with the `llama.cpp` client, follow these steps:
    cd llama.cpp
    ```
 
-2. **Build and install `llama.cpp`**: Use the provided instructions to build and
-   install `llama.cpp`. For example, you can use CMake to build the library with ROCm support. I personally prefer Vulkan when using AMD because Vulkan has better support for a wider range of GPU's than ROCm does.
+2. **Build and Install Llama.Cpp**
 
-   Build the library with Vulkan support.
+   To build and install `llama.cpp`, use the following instructions:
 
-   ```sh
-   make LLAMA_VULKAN=1  # GPU
+   - Vulkan Support
+
+   ```bash
+   cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=1 -DGGML_VULKAN_DEBUG=0 -DGGML_CCACHE=0
    ```
 
-   Build the library with CUDA support.
+   - CUDA Support
 
-   ```sh
-   make LLAMA_CUDA=1  # GPU
+   ```bash
+   cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=1 -DGGML_CUDA_DEBUG=0 -DGGML_CCACHE=0
    ```
 
-   Build the library with BLAS support.
+   - BLAS Support
 
-   ```sh
-   make LLAMA_OPENBLAS=1  # CPU
+   ```bash
+   cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBLAS -DGGML_CCACHE=0
+   ```
+
+   - CPU Support
+
+   ```bash
+   cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_CCACHE=0
+   ```
+
+   - Compile with All CPU Cores
+
+   ```bash
+   cmake --build build --config Debug -j $(nproc)
    ```
 
 3. **Run the `llama.cpp` server**: Use the provided instructions to run the
@@ -59,11 +72,10 @@ To get started with the `llama.cpp` client, follow these steps:
    with your chosen model and configuration settings.
 
    ```sh
-   ./llama.cpp/server -m [model path here] --ctx-size [int] --n-gpu-layers [int] --path app
+   ./llama.cpp/build/bin/llama-server -m [model path here] --ctx-size [int] --n-gpu-layers [int] --path app
    ```
 
-   Note that you can extend the front end by running the server binary with
-   `--path`.
+   Note that you can extend the front end by running the server binary with `--path`.
 
 ### WebUI
 
@@ -143,9 +155,8 @@ and examples.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE.md).
+This project is licensed under the [AGPL License](LICENSE.md).
 
 ## Acknowledgments
 
-- The `llama.cpp` team for developing an incredible natural language processing
-  tool.
+- The `llama.cpp` team for developing an incredible natural language processing tool.
