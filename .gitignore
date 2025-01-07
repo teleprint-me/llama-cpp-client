@@ -3,6 +3,7 @@
 /local
 /models
 /prompts
+/data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
