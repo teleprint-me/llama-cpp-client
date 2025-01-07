@@ -6,37 +6,39 @@ The `llama.cpp` client is a experimental front-end client library for interactin
 
 ## Features
 
-This project aims to explore the capabilities of `llama.cpp` through various tools and interfaces, with a focus on interaction, experimentation, and extensibility. Below is the current roadmap for features, including work-in-progress and planned items:
+**Overview**  
+`llama-cpp-client` explores the capabilities of `llama.cpp` through various tools and interfaces, focusing on interaction, experimentation, and extensibility.
 
-### Interaction with `llama.cpp`
-- [ ] A **simple API** for handling requests and responses, making it easy to send prompts and receive completions.
-- [ ] A **command-line interface (CLI)** for interacting with the server via terminal commands, supporting:
-  - [ ] Text embeddings
-  - [ ] Text completions
-  - [ ] Chat completions
-  - [ ] Infill completions
-  - [ ] Grammar-based completions
-- [ ] A **text-based UI** using `rich` for enhanced visual feedback during interactions.
-- [ ] A **web-based UI** for interacting with the model through a browser.
+### Roadmap
 
-### Integration with `llama.cpp`
-- [ ] Support for **text embeddings**, with SQLite storage for efficient retrieval and similarity searches.
-- [ ] Fully functional **text completions**, providing single and streaming output.
-- [ ] Robust **chat completions**, capable of maintaining context across multi-turn conversations.
-- [ ] Integration of **Backus-Naur Form grammars**, enabling structured and constrained output generation.
+#### Interaction with `llama.cpp`
+- Simple API for handling requests and responses.
+- Command-line interface (CLI) for interacting with the server.
+- Text-based UI using `rich` for enhanced visual feedback.
+- Web-based UI for browser-based interaction.
+- Robust chat completions with multi-turn conversation support.
+- Backus-Naur Form (BNF) grammar integration for structured output.
 
-### Tooling
-- [ ] Tools to enable **function schemas**, defining callable APIs during interactions.
-- [ ] Support for **function calls**, allowing dynamic actions based on model outputs.
+#### Integration with `llama.cpp`
+- Text embeddings with SQLite storage for retrieval and similarity searches.
+- Fully functional text completions (single and streaming outputs).
+- Function schemas defining callable APIs during interactions.
+- Function calls for dynamic actions based on model outputs.
 
-### Planned Enhancements
-- [ ] A **basic text editor**, providing an integrated environment to:
+#### Planned Enhancements
+- Basic text editor for prompts, datasets, and code:
   - Compose and edit prompts or datasets.
   - Run and visualize completions and embeddings.
-  - Manage and explore history or embeddings within the project.
-  - Serve as a bridge between the text UI, CLI, and web interface.
+  - Manage and explore history or embeddings.
+  - Code completion, navigation, formatting, debugging, tracing, testing, and documentation.
 
-**NOTE**: All features are currently a work in progress, with active development focused on exploring and refining each component.
+---
+
+**Note**  
+All features are work in progress, with active development focused on refining and implementing the roadmap.
+
+**Status**  
+`llama-cpp-client` is in its early stages, with ongoing efforts to expand and polish functionality.
 
 ## Getting Started
 
