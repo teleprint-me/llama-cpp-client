@@ -6,12 +6,37 @@ The `llama.cpp` client is a experimental front-end client library for interactin
 
 ## Features
 
-- [ ] Interact with the `llama.cpp` server using a simple api, cli, web ui.
-- [ ] Connect to `llama.cpp` server for text generation and conversation.
-- [ ] Utilize predefined grammars and custom grammars for precise text generation to guide model behavior.
-- [ ] Access function schemas for enabling function calls during interactions.
+This project aims to explore the capabilities of `llama.cpp` through various tools and interfaces, with a focus on interaction, experimentation, and extensibility. Below is the current roadmap for features, including work-in-progress and planned items:
 
-**NOTE: All interfaces are currently a WIP (work in progress)**
+### Interaction with `llama.cpp`
+- [ ] A **simple API** for handling requests and responses, making it easy to send prompts and receive completions.
+- [ ] A **command-line interface (CLI)** for interacting with the server via terminal commands, supporting:
+  - [ ] Text embeddings
+  - [ ] Text completions
+  - [ ] Chat completions
+  - [ ] Infill completions
+  - [ ] Grammar-based completions
+- [ ] A **text-based UI** using `rich` for enhanced visual feedback during interactions.
+- [ ] A **web-based UI** for interacting with the model through a browser.
+
+### Integration with `llama.cpp`
+- [ ] Support for **text embeddings**, with SQLite storage for efficient retrieval and similarity searches.
+- [ ] Fully functional **text completions**, providing single and streaming output.
+- [ ] Robust **chat completions**, capable of maintaining context across multi-turn conversations.
+- [ ] Integration of **Backus-Naur Form grammars**, enabling structured and constrained output generation.
+
+### Tooling
+- [ ] Tools to enable **function schemas**, defining callable APIs during interactions.
+- [ ] Support for **function calls**, allowing dynamic actions based on model outputs.
+
+### Planned Enhancements
+- [ ] A **basic text editor**, providing an integrated environment to:
+  - Compose and edit prompts or datasets.
+  - Run and visualize completions and embeddings.
+  - Manage and explore history or embeddings within the project.
+  - Serve as a bridge between the text UI, CLI, and web interface.
+
+**NOTE**: All features are currently a work in progress, with active development focused on exploring and refining each component.
 
 ## Getting Started
 
