@@ -112,6 +112,27 @@ class LlamaCppAPI:
         except KeyError:
             return self.slots["error"]["message"]
 
+    def tokenize(self, content: str, add_special: bool = False) -> List[int]:
+        """Tokenizes a given text using the server's tokenize endpoint."""
+        self.logger.debug(f"Tokenizing: {content}")
+        data = {"content": content, "add_special": add_special}
+        response = self.request.post("/tokenize", data=data)
+        return response.get("tokens", [])
+
+    def detokenize(self, tokens: List[int]) -> str:
+        """Detokenizes a given sequence of token IDs using the server's detokenize endpoint."""
+        self.logger.debug(f"Detokenizing: {tokens}")
+        data = {"tokens": tokens}
+        response = self.request.post("/detokenize", data=data)
+        return response.get("content", "")
+
+    def embedding(self, content: str) -> Any:
+        """Get the embedding for the given input."""
+        self.logger.debug(f"Fetching embedding for input: {content}")
+        endpoint = "/embedding"
+        data = {"input": content, "encoding_format": "float"}
+        return self.request.post(endpoint, data)
+
     def completion(self, prompt: str) -> Any:
         """Send a completion request to the API using the given prompt."""
         self.logger.debug(f"Sending completion request with prompt: {prompt}")
