@@ -13,3 +13,5 @@ tiktoken
 openai
 python-dotenv
 jsonpycraft
+matplotlib
+scikit-learn
