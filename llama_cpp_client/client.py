@@ -5,7 +5,6 @@ Module: llama_cpp_client.client
 """
 
 import argparse
-import sys
 
 from rich import pretty, print
 from rich.console import Console
