@@ -14,7 +14,6 @@ from rich.markdown import Markdown, Panel
 from llama_cpp_client.api import LlamaCppAPI
 from llama_cpp_client.history import LlamaCppHistory
 from llama_cpp_client.request import LlamaCppRequest
-from llama_cpp_client.tokenizer import LlamaCppTokenizer
 
 
 class LlamaCppClient:
@@ -22,7 +21,6 @@ class LlamaCppClient:
         self,
         api: LlamaCppAPI = None,
         history: LlamaCppHistory = None,
-        tokenizer: LlamaCppTokenizer = None,
     ) -> None:
         # install automatic pretty printing in python repl
         pretty.install()
@@ -37,11 +35,6 @@ class LlamaCppClient:
                 session_name="client",
                 system_message="My name is Llama. I am a helpful assistant.",
             )
-
-        if tokenizer is not None:
-            self.tokenizer = tokenizer
-        else:
-            self.tokenizer = LlamaCppTokenizer(self.api.request)
 
         self.console = Console()
 
@@ -263,7 +256,6 @@ def main():
         cache_prompt=args.cache_prompt,
         stop=stop,
     )
-    llama_cpp_tokenizer = LlamaCppTokenizer(llama_cpp_request)
 
     if args.completions:
         llama_cpp_history = LlamaCppHistory(args.session_name)
@@ -273,7 +265,6 @@ def main():
     llama_cpp_client = LlamaCppClient(
         api=llama_cpp_api,
         history=llama_cpp_history,
-        tokenizer=llama_cpp_tokenizer,
     )
     # `grammar`: Set grammar for grammar-based sampling (default: no grammar)
 
