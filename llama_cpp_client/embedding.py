@@ -253,56 +253,70 @@ def visualize_embeddings(embeddings: List[np.ndarray], labels: List[str]):
     plt.show()
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--visualize",
-        action="store_true",
-        help="Visualize the embeddings. Default: False",
+def main():
+    parser = argparse.ArgumentParser(
+        description="Embedding generator and similarity search."
     )
     parser.add_argument(
         "--input",
         type=str,
-        default="Hello!",
-        help="Input text to test the embeddings. Default: 'Hello!'",
+        default="Hello, World!",
+        help="Input text for generating embeddings. Default: 'Hello, World!'",
     )
     parser.add_argument(
         "--filepath",
-        help="Input file to parse. Default: None",
+        type=str,
         default=None,
+        help="Path to a file for embedding generation. Default: None",
+    )
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=None,
+        help="Chunk size for splitting the file. Defaults to the model's embedding size.",
+    )
+    parser.add_argument(
+        "--top-n",
+        type=int,
+        default=3,
+        help="Number of top similar content results to display. Default: 3",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging.",
     )
     args = parser.parse_args()
 
-    # Determine if input is a string or a file
-    if args.filepath and os.path.isfile(args.filepath):
-        content = process_file(args.filepath)
-    else:
-        content = ["Hello, World!", "Hi, Universe!", "Goodbye, Galaxy!"]
-
-    # Initialize the API
+    # Initialize the API and embedding utility
     api = LlamaCppAPI()
+    embedding_util = LlamaCppEmbedding(api=api, verbose=args.verbose)
 
-    # Normalize content
-    content = normalize_text(content)
-    # Chunk content with model
-    content = chunk_text_with_model(content, api)
+    if args.filepath and os.path.isfile(args.filepath):
+        # Process file embeddings
+        file_embedding = embedding_util.process_file_embedding(
+            args.filepath, chunk_size=args.chunk_size
+        )
+        print(f"Generated embedding for file: {args.filepath}")
+    else:
+        # Process single text embedding
+        file_embedding = None
+        print(f"No valid file provided. Continuing with input text: '{args.input}'")
 
-    # Generate embeddings
-    query_embedding = process_embedding(args.input, api)
-    content_embeddings = process_embedding_list(content, api)
+    # Generate query embedding
+    query_embedding = embedding_util.process_embedding(args.input)
+    print(f"Generated embedding for input text: '{args.input}'")
 
-    # Compute cosine similarity
-    similarities = [
-        cosine_similarity(query_embedding, embedding)
-        for embedding in content_embeddings
-    ]
+    if file_embedding is not None:
+        # Compute similarity if a file was provided
+        similarity = embedding_util.compute_similarity(query_embedding, file_embedding)
+        print(f"Similarity between input and file: {similarity:.4f}")
+    else:
+        print("No file embedding available for similarity computation.")
 
-    # Find the most similar content
-    index = np.argmax(similarities)
-    result = content[index], similarities[index]
-    print(
-        f"Most similar content to '{args.input}': '{result[0]}' (Score: {result[1]:.4f})"
-    )
+    # If future batch processing or additional content embeddings exist,
+    # `find_top_n_similar` could be used here with a collection of embeddings and contents.
 
-    if args.visualize:
-        visualize_embeddings(content_embeddings, content)
+
+if __name__ == "__main__":
+    main()
