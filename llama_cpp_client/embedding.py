@@ -50,6 +50,12 @@ class FileChunker:
         """Return the size of the embedding."""
         return self.api.get_embed_size()
 
+    @property
+    def special_token_count(self) -> int:
+        """Return the number of special tokens."""
+        # Use a dummy input to count special tokens
+        return len(self.api.tokenize("", add_special=True, with_pieces=False))
+
     def read_file_contents(self, file_path: str) -> None:
         """Read a file and store its contents."""
         try:
@@ -92,25 +98,37 @@ class FileChunker:
         if self.verbose:
             self.logger.debug("Text normalization completed.")
 
-    def chunk_text_with_model(self, chunk_size: int = 0, overlap: int = 0) -> List[str]:
+    def chunk_text_with_model(
+        self,
+        chunk_size: int = 0,
+        overlap: int = 0,
+        batch_size: int = 512,
+    ) -> List[str]:
         """
-        Split text into chunks compatible with the model's embedding size.
+        Split text into chunks compatible with the model's embedding size and batch size.
 
         Args:
-            chunk_size (int): Maximum number of tokens per chunk.
+            chunk_size (int): Maximum number of tokens per chunk (defaults to batch size - special tokens).
             overlap (int): Number of tokens to overlap between chunks.
+            batch_size (int): Physical batch size (defaults to 512).
 
         Returns:
             List[str]: List of text chunks.
         """
-        if chunk_size <= 0 or chunk_size > self.embed_size:
-            chunk_size = self.embed_size
+        # Determine the special token overhead
+        max_tokens = batch_size - self.special_token_count
+        if chunk_size <= 0 or chunk_size > max_tokens:
+            self.logger.debug(
+                f"Chunk size adjusted to {max_tokens} to fit within batch constraints."
+            )
+            chunk_size = max_tokens
         if overlap >= chunk_size:
             raise ValueError("Overlap must be smaller than chunk size.")
 
-        tokens = self.api.tokenize(self.file_contents, with_pieces=False)
-
         chunks = []
+        tokens = self.api.tokenize(
+            self.file_contents, add_special=False, with_pieces=False
+        )
         for i in range(0, len(tokens), chunk_size - overlap):
             chunk_tokens = tokens[i : i + chunk_size]
             chunk_text = self.api.detokenize(chunk_tokens)
@@ -163,7 +181,7 @@ class LlamaCppEmbedding:
         return np.mean(embedding_vectors, axis=0)
 
     def process_file_embedding(
-        self, file_path: str, chunk_size: int = None
+        self, file_path: str, chunk_size: int = 0, batch_size: int = 0
     ) -> np.ndarray:
         """
         Generate an embedding for a file, optionally chunked.
@@ -177,10 +195,8 @@ class LlamaCppEmbedding:
         """
         chunker = FileChunker(api=self.api, file_path=file_path, verbose=self.verbose)
         chunker.normalize_text()  # Apply minimal normalization
-        chunks = (
-            chunker.chunk_text_with_model(chunk_size=chunk_size)
-            if chunk_size
-            else [chunker.file_contents]
+        chunks = chunker.chunk_text_with_model(
+            chunk_size=chunk_size, batch_size=batch_size
         )
         embeddings = [self.process_embedding(chunk) for chunk in chunks]
         return np.mean(embeddings, axis=0)
@@ -334,8 +350,18 @@ def main():
     parser.add_argument(
         "--chunk-size",
         type=int,
-        default=None,
+        default=0,
         help="Chunk size for splitting the file. Defaults to the model's embedding size.",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=512,
+        help=(
+            "Maximum number of tokens to process per batch. This must match the server's "
+            "--ubatch-size setting. Defaults to 512. Adjust as needed based on your "
+            "server configuration to avoid input size errors."
+        ),
     )
     parser.add_argument(
         "--top-n",
@@ -357,7 +383,9 @@ def main():
     if args.filepath and os.path.isfile(args.filepath):
         # Process file embeddings
         file_embedding = embedding_util.process_file_embedding(
-            args.filepath, chunk_size=args.chunk_size
+            args.filepath,
+            chunk_size=args.chunk_size,
+            batch_size=args.batch_size,
         )
         print(f"Generated embedding for file: {args.filepath}")
     else:
