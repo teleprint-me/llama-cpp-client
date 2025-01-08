@@ -9,77 +9,114 @@ This module contains functions for embedding simple inputs.
 """
 
 import argparse
+import logging
 import os
 import re
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
 
 from llama_cpp_client.api import LlamaCppAPI
+from llama_cpp_client.logger import get_default_logger
 
 
-def process_file(file_path: str) -> List[str]:
-    """Read a file and return its contents."""
-    with open(file_path, "r") as file:
-        return file.readlines()
+class FileChunker:
+    """Class for processing and chunking file contents."""
+
+    def __init__(self, api: LlamaCppAPI, file_path: str, verbose: bool = False) -> None:
+        self.api: LlamaCppAPI = api
+        self.verbose = verbose
+        self.logger = get_default_logger(
+            name=self.__class__.__name__,
+            level=logging.DEBUG if verbose else logging.INFO,
+        )
+
+        # Read and set the file contents
+        self.file_contents = ""  # Default set to empty string
+        self.read_file_contents(file_path)  # Update self.file_contents
+
+    @property
+    def embed_size(self) -> int:
+        """Return the size of the embedding."""
+        return self.api.get_embed_size()
+
+    def read_file_contents(self, file_path: str) -> None:
+        """Read a file and store its contents."""
+        try:
+            with open(file_path, "r") as file:
+                self.file_contents = file.read()
+        except FileNotFoundError:
+            raise ValueError(f"File not found: {file_path}")
+        except IOError as e:
+            raise ValueError(f"Error reading file {file_path}: {e}")
+
+    def normalize_text(
+        self,
+        lowercase: bool = False,
+        remove_punctuation: bool = False,
+        preserve_structure: bool = True,
+    ) -> None:
+        """Normalize text by removing punctuation and converting to lowercase."""
+        normalized = self.file_contents.strip()
+        if lowercase:
+            normalized = normalized.lower()
+        if remove_punctuation:
+            if preserve_structure:
+                normalized = re.sub(r"[^\w\s.,?!'\"()]", "", normalized)
+            else:
+                normalized = re.sub(r"[^\w\s]", "", normalized)
+        self.file_contents = normalized
+
+    def chunk_text_with_model(
+        self,
+        chunk_size: int = 0,
+        overlap: int = 0,
+        verbose: bool = False,
+    ) -> List[str]:
+        """Split text into chunks compatible with the model's embedding size."""
+        # Bind to the model's embedding size.
+        if chunk_size <= 0 or chunk_size > self.embed_size:
+            chunk_size = self.embed_size
+
+        # Don't allow overlaps larger than the chunk size.
+        if overlap >= chunk_size:
+            raise ValueError("Overlap must be smaller than chunk size.")
+
+        # Tokenize file contents
+        tokens = self.api.tokenize(self.file_contents, with_pieces=False)
+
+        # Split into chunks
+        chunks = []
+        for i in range(0, len(tokens), chunk_size - overlap):
+            chunk_tokens = tokens[i : i + chunk_size]
+            chunk_text = self.api.detokenize([token for token in chunk_tokens])
+            chunks.append(chunk_text)
+            if verbose:
+                self.logger.debug(
+                    f"Chunk {i}: length: {len(chunk_tokens)}, {chunk_text}"
+                )
+
+        # Handle the case where the file is too short
+        if not chunks and self.file_contents.strip():
+            chunks.append(self.file_contents.strip())
+            if verbose:
+                self.logger.debug(
+                    "Content too short for chunking; returning as single chunk."
+                )
+
+        return chunks
 
 
-def normalize_text(content: str) -> str:
-    """Normalizes a text by removing punctuation and converting to lowercase."""
-    # Strip leading and trailing whitespace
-    content = content.strip()
-    # Convert to lowercase
-    content = content.lower()
-    # Remove punctuation
-    content = re.sub(r"[^\w\s]", "", content)
-    return content
+class LlamaCppEmbedding:
+    """Embedding functions for LlamaCppClient."""
 
-
-def chunk_text_with_model(
-    content: str,
-    api: LlamaCppAPI,
-    chunk_size: int = None,
-    overlap: int = 0,
-    verbose: bool = False,
-) -> List[str]:
-    """
-    Splits text into chunks that fit within the model's embedding size, with optional overlap.
-    Args:
-        content (str): The text to chunk.
-        api (LlamaCppAPI): The LlamaCpp API instance.
-        chunk_size (int, optional): Maximum number of tokens per chunk. Defaults to model's embedding size.
-        overlap (int, optional): Number of tokens to overlap between chunks. Defaults to 0.
-    Returns:
-        List[str]: List of text chunks.
-    """
-    # Use the model's embedding size if None or outside of range
-    max_embed_size = api.get_embed_size()
-    in_range = 0 < chunk_size < max_embed_size
-    if chunk_size is None or not in_range:
-        chunk_size = max_embed_size
-
-    # Tokenize the content
-    tokens = api.tokenize(content, with_pieces=True)
-
-    # Create chunks with overlap
-    chunks = []
-    for i in range(0, len(tokens), chunk_size - overlap):
-        chunk_tokens = tokens[i : i + chunk_size]
-        # Combine the token pieces into a single string
-        chunk_text = " ".join([token["piece"] for token in chunk_tokens])
-        chunks.append(chunk_text)
-        if verbose:
-            print(f"Chunk {i}: length: {len(chunk_tokens)}, {chunk_text}")
-
-    # Handle case where no chunks are generated
-    if not chunks and content.strip():
-        chunks.append(content.stript())
-        if verbose:
-            print("Content too short for chunking; returning as single chunk.")
-
-    return chunks
+    def __init__(self, file_path: str, api: LlamaCppAPI) -> None:
+        """Read a file and return its contents."""
+        self.api = api
+        self.file_path = file_path
+        self.content = self._read_file_contents()
 
 
 def process_embedding(content: str, api: LlamaCppAPI) -> np.ndarray:
