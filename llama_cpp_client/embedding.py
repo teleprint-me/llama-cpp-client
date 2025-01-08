@@ -129,34 +129,116 @@ class FileChunker:
 
 
 class LlamaCppEmbedding:
-    """Embedding functions for LlamaCppClient."""
+    """Class for processing and generating embeddings for single or batched inputs."""
 
-    def __init__(self, file_path: str, api: LlamaCppAPI) -> None:
-        """Read a file and return its contents."""
+    def __init__(self, api: LlamaCppAPI, verbose: bool = False) -> None:
+        """
+        Initialize the LlamaCppEmbedding class.
+
+        Args:
+            api (LlamaCppAPI): The API instance for interacting with the model.
+            verbose (bool): Whether to enable verbose logging.
+        """
         self.api = api
-        self.file_path = file_path
-        self.content = self._read_file_contents()
+        self.verbose = verbose
 
+    def process_embedding(self, content: str) -> np.ndarray:
+        """
+        Generate an embedding for a single input string.
 
-def process_embedding(content: str, api: LlamaCppAPI) -> np.ndarray:
-    """Generate embeddings for a file."""
-    response = api.embedding(content)
-    # Extract and flatten the embeddings vectors from the response
-    embedding = response[0]["embedding"]  # This is a matrix (n x embed_size)
-    embedding_vectors = [np.array(vector) for vector in embedding]
-    embedding_vector_len = len(embedding_vectors[0])
-    assert embedding_vector_len == api.get_embed_size(), "Invalid embedding size"
-    # Combine all vectors into one array (optional, depending on your use case)
-    return np.mean(embedding_vectors, axis=0)
+        Args:
+            content (str): Input text to generate an embedding for.
 
+        Returns:
+            np.ndarray: A normalized embedding vector.
+        """
+        response = self.api.embedding(content)
+        embedding = response[0]["embedding"]
+        embedding_vectors = np.array(embedding)
+        assert (
+            embedding_vectors.shape[1] == self.api.get_embed_size()
+        ), "Embedding size mismatch."
+        return np.mean(embedding_vectors, axis=0)
 
-def process_embedding_list(contents: List[str], api: LlamaCppAPI) -> List[np.ndarray]:
-    """Generate embeddings for a list of contents."""
-    embeddings = []
-    for content in contents:
-        embedding_vectors = process_embedding(content, api)
-        embeddings.append(embedding_vectors)
-    return embeddings
+    def process_file_embedding(
+        self, file_path: str, chunk_size: int = None
+    ) -> np.ndarray:
+        """
+        Generate an embedding for a file, optionally chunked.
+
+        Args:
+            file_path (str): Path to the file to embed.
+            chunk_size (int, optional): Chunk size for splitting the file. Defaults to None.
+
+        Returns:
+            np.ndarray: A normalized embedding vector for the entire file.
+        """
+        chunker = FileChunker(api=self.api, file_path=file_path, verbose=self.verbose)
+        chunker.normalize_text()  # Apply minimal normalization
+        chunks = (
+            chunker.chunk_text_with_model(chunk_size=chunk_size)
+            if chunk_size
+            else [chunker.file_contents]
+        )
+        embeddings = [self.process_embedding(chunk) for chunk in chunks]
+        return np.mean(embeddings, axis=0)
+
+    @staticmethod
+    def cosine_similarity(v1: np.ndarray, v2: np.ndarray) -> float:
+        """Returns the cosine similarity between two vectors."""
+        return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+
+    @staticmethod
+    def euclidean_distance(v1: np.ndarray, v2: np.ndarray) -> float:
+        """Returns the Euclidean distance between two vectors."""
+        return np.linalg.norm(v1 - v2)
+
+    def compute_similarity(
+        self, v1: np.ndarray, v2: np.ndarray, metric: str = "cosine"
+    ) -> float:
+        """
+        Compute similarity between two embeddings.
+
+        Args:
+            v1 (np.ndarray): First embedding vector.
+            v2 (np.ndarray): Second embedding vector.
+            metric (str): Similarity metric ('cosine' or 'euclidean').
+
+        Returns:
+            float: Similarity score.
+        """
+        if metric == "cosine":
+            return LlamaCppEmbedding.cosine_similarity(v1, v2)
+        elif metric == "euclidean":
+            return LlamaCppEmbedding.euclidean_distance(v1, v2)
+        else:
+            raise ValueError(f"Unsupported metric: {metric}")
+
+    def find_top_n_similar(
+        self,
+        query_embedding: np.ndarray,
+        embeddings: List[np.ndarray],
+        contents: List[str],
+        n: int = 3,
+    ) -> List[str]:
+        """
+        Find the top N most similar content to a query embedding.
+
+        Args:
+            query_embedding (np.ndarray): Query embedding vector.
+            embeddings (List[np.ndarray]): List of embedding vectors.
+            contents (List[str]): List of corresponding content strings.
+            n (int): Number of top similar results to return.
+
+        Returns:
+            List[str]: Top N similar content strings with similarity scores.
+        """
+        similarities = [
+            self.compute_similarity(query_embedding, embedding)
+            for embedding in embeddings
+        ]
+        top_indices = np.argsort(similarities)[-n:][::-1]
+        return [(contents[i], similarities[i]) for i in top_indices]
 
 
 def visualize_embeddings(embeddings: List[np.ndarray], labels: List[str]):
@@ -171,32 +253,7 @@ def visualize_embeddings(embeddings: List[np.ndarray], labels: List[str]):
     plt.show()
 
 
-def euclidean_distance(v1: np.ndarray, v2: np.ndarray) -> float:
-    """Returns the Euclidean distance between two vectors."""
-    return np.linalg.norm(v1 - v2)
-
-
-def cosine_similarity(v1: np.ndarray, v2: np.ndarray) -> float:
-    """Returns the cosine similarity between two vectors."""
-    return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
-
-
-def find_top_n_similar(
-    query_embedding: np.ndarray,
-    content_embedding: List[np.ndarray],
-    content: List[str],
-    n: int = 3,
-) -> List[str]:
-    """Finds the top N most similar content to a given query."""
-    similarities = [
-        cosine_similarity(query_embedding, content_embedding)
-        for embedding in content_embedding
-    ]
-    top_indices = np.argsort(similarities)[-n:][::-1]
-    return [(content[i], similarities[i]) for i in top_indices]
-
-
-def parse_args() -> argparse.Namespace:
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--visualize",
@@ -214,11 +271,7 @@ def parse_args() -> argparse.Namespace:
         help="Input file to parse. Default: None",
         default=None,
     )
-    return parser.parse_args()
-
-
-if __name__ == "__main__":
-    args = parse_args()
+    args = parser.parse_args()
 
     # Determine if input is a string or a file
     if args.filepath and os.path.isfile(args.filepath):
