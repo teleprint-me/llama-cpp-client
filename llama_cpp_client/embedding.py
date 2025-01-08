@@ -26,16 +26,22 @@ class FileChunker:
     """Class for processing and chunking file contents."""
 
     def __init__(self, api: LlamaCppAPI, file_path: str, verbose: bool = False) -> None:
-        self.api: LlamaCppAPI = api
+        """
+        Initialize the FileChunker with the API instance and file path.
+
+        Args:
+            api (LlamaCppAPI): Instance of the LlamaCppAPI.
+            file_path (str): Path to the file to be processed.
+            verbose (bool): Whether to enable verbose logging.
+        """
+        self.api = api
         self.verbose = verbose
         self.logger = get_default_logger(
             name=self.__class__.__name__,
             level=logging.DEBUG if verbose else logging.INFO,
         )
-
-        # Read and set the file contents
-        self.file_contents = ""  # Default set to empty string
-        self.read_file_contents(file_path)  # Update self.file_contents
+        self.file_contents = ""
+        self.read_file_contents(file_path)
 
     @property
     def embed_size(self) -> int:
@@ -47,6 +53,8 @@ class FileChunker:
         try:
             with open(file_path, "r") as file:
                 self.file_contents = file.read()
+            if self.verbose:
+                self.logger.debug(f"Read file contents from: {file_path}")
         except FileNotFoundError:
             raise ValueError(f"File not found: {file_path}")
         except IOError as e:
@@ -58,7 +66,18 @@ class FileChunker:
         remove_punctuation: bool = False,
         preserve_structure: bool = True,
     ) -> None:
-        """Normalize text by removing punctuation and converting to lowercase."""
+        """
+        Normalize text by removing punctuation and converting to lowercase.
+
+        Args:
+            lowercase (bool): Whether to convert text to lowercase.
+            remove_punctuation (bool): Whether to remove punctuation.
+            preserve_structure (bool): Whether to preserve basic punctuation for structure.
+        """
+        if not self.file_contents.strip():
+            self.logger.debug("File is empty; skipping normalization.")
+            return
+
         normalized = self.file_contents.strip()
         if lowercase:
             normalized = normalized.lower()
@@ -68,44 +87,44 @@ class FileChunker:
             else:
                 normalized = re.sub(r"[^\w\s]", "", normalized)
         self.file_contents = normalized
+        if self.verbose:
+            self.logger.debug("Text normalization completed.")
 
-    def chunk_text_with_model(
-        self,
-        chunk_size: int = 0,
-        overlap: int = 0,
-        verbose: bool = False,
-    ) -> List[str]:
-        """Split text into chunks compatible with the model's embedding size."""
-        # Bind to the model's embedding size.
+    def chunk_text_with_model(self, chunk_size: int = 0, overlap: int = 0) -> List[str]:
+        """
+        Split text into chunks compatible with the model's embedding size.
+
+        Args:
+            chunk_size (int): Maximum number of tokens per chunk.
+            overlap (int): Number of tokens to overlap between chunks.
+
+        Returns:
+            List[str]: List of text chunks.
+        """
         if chunk_size <= 0 or chunk_size > self.embed_size:
             chunk_size = self.embed_size
-
-        # Don't allow overlaps larger than the chunk size.
         if overlap >= chunk_size:
             raise ValueError("Overlap must be smaller than chunk size.")
 
-        # Tokenize file contents
         tokens = self.api.tokenize(self.file_contents, with_pieces=False)
 
-        # Split into chunks
         chunks = []
         for i in range(0, len(tokens), chunk_size - overlap):
             chunk_tokens = tokens[i : i + chunk_size]
-            chunk_text = self.api.detokenize([token for token in chunk_tokens])
+            chunk_text = self.api.detokenize(chunk_tokens)
             chunks.append(chunk_text)
-            if verbose:
+            if self.verbose:
                 self.logger.debug(
-                    f"Chunk {i}: length: {len(chunk_tokens)}, {chunk_text}"
+                    f"Chunk {i // (chunk_size - overlap)}: {len(chunk_tokens)} tokens."
                 )
 
-        # Handle the case where the file is too short
         if not chunks and self.file_contents.strip():
             chunks.append(self.file_contents.strip())
-            if verbose:
-                self.logger.debug(
-                    "Content too short for chunking; returning as single chunk."
-                )
+            self.logger.debug(
+                "Content too short for chunking; returned as single chunk."
+            )
 
+        self.logger.debug(f"Generated {len(chunks)} chunks.")
         return chunks
 
 
