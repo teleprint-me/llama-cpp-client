@@ -14,7 +14,7 @@ import argparse
 import logging
 import os
 import re
-from typing import List
+from typing import Any, Callable, Dict, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -201,122 +201,104 @@ class LlamaCppEmbedding:
         embeddings = [self.process_embedding(chunk) for chunk in chunks]
         return np.mean(embeddings, axis=0)
 
+    def process_file_embedding_entries(
+        self, file_path: str, chunk_size: int, batch_size: int
+    ) -> List[dict]:
+        """Returns a list of embeddings for a file with metadata."""
+        chunker = FileChunker(api=self.api, file_path=file_path, verbose=self.verbose)
+        chunker.normalize_text()
+        chunks = chunker.chunk_text_with_model(
+            chunk_size=chunk_size, batch_size=batch_size
+        )
+        results = []
+        for chunk_id, chunk in enumerate(chunks):
+            embedding = self.process_embedding(chunk)
+            results.append(
+                {
+                    "chunk_id": chunk_id,
+                    "chunk": chunk,
+                    "embedding": embedding,
+                }
+            )
+        return results
+
+
+class LlamaCppSimilarity:
     @staticmethod
-    def cosine_similarity(v1: np.ndarray, v2: np.ndarray) -> float:
+    def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
         """Returns the cosine similarity between two vectors."""
-        return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
     @staticmethod
-    def euclidean_distance(v1: np.ndarray, v2: np.ndarray) -> float:
+    def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
         """Returns the Euclidean distance between two vectors."""
-        return np.linalg.norm(v1 - v2)
+        return np.linalg.norm(a - b)
 
-    def compute_similarity(
-        self, v1: np.ndarray, v2: np.ndarray, metric: str = "cosine"
-    ) -> float:
+    @staticmethod
+    def manhattan_distance(a: np.ndarray, b: np.ndarray) -> float:
+        """Returns the Manhattan distance between two vectors."""
+        return np.sum(np.abs(a - b))
+
+    @staticmethod
+    def get_metric(metric: str) -> Callable[[np.ndarray, np.ndarray], float]:
         """
-        Compute similarity between two embeddings.
+        Returns the metric function for a given metric.
 
-        Args:
-            v1 (np.ndarray): First embedding vector.
-            v2 (np.ndarray): Second embedding vector.
-            metric (str): Similarity metric ('cosine' or 'euclidean').
+        Supported metrics:
+            - "cosine": Cosine similarity
+            - "euclidean": Euclidean distance
+            - "manhattan": Manhattan distance
 
-        Returns:
-            float: Similarity score.
+        Raises:
+            ValueError: If the metric is unsupported.
         """
-        if metric == "cosine":
-            return LlamaCppEmbedding.cosine_similarity(v1, v2)
-        elif metric == "euclidean":
-            return LlamaCppEmbedding.euclidean_distance(v1, v2)
-        else:
+        metrics = {
+            "cosine": LlamaCppSimilarity.cosine_similarity,
+            "euclidean": LlamaCppSimilarity.euclidean_distance,
+            "manhattan": LlamaCppSimilarity.manhattan_distance,
+        }
+        if metric not in metrics:
             raise ValueError(f"Unsupported metric: {metric}")
+        return metrics[metric]
 
-    def find_top_n_similar(
-        self,
-        query_embedding: np.ndarray,
-        embeddings: List[np.ndarray],
-        contents: List[str],
-        n: int = 3,
-    ) -> List[str]:
-        """
-        Find the top N most similar content to a query embedding.
-
-        Args:
-            query_embedding (np.ndarray): Query embedding vector.
-            embeddings (List[np.ndarray]): List of embedding vectors.
-            contents (List[str]): List of corresponding content strings.
-            n (int): Number of top similar results to return.
-
-        Returns:
-            List[str]: Top N similar content strings with similarity scores.
-        """
-        similarities = [
-            self.compute_similarity(query_embedding, embedding)
-            for embedding in embeddings
-        ]
-        top_indices = np.argsort(similarities)[-n:][::-1]
-        return [(contents[i], similarities[i]) for i in top_indices]
-
-
-class LlamaCppReranker:
-    """Manual reranking for documents based on a query."""
-
-    def __init__(self, embedding_util: LlamaCppEmbedding):
-        """
-        Initialize the reranker.
-
-        Args:
-            embedding_util (LlamaCppEmbedding): Instance of the embedding utility.
-        """
-        self.embedding_util = embedding_util
-
-    def softmax(self, scores: np.ndarray) -> np.ndarray:
-        """Apply softmax to an array of scores."""
+    @staticmethod
+    def softmax(scores: np.ndarray) -> np.ndarray:
+        """Returns the softmax of a vector."""
         exp_scores = np.exp(scores - np.max(scores))
         return exp_scores / exp_scores.sum()
 
-    def rerank(self, query: str, documents: List[str], top_n: int = 3) -> List[dict]:
-        """
-        Rerank documents based on their relevance to a query.
+    @staticmethod
+    def sort_mapping(mapping: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Returns a sorted list of dictionaries by a given score."""
+        return sorted(mapping, key=lambda x: x["score"], reverse=True)
 
-        Args:
-            query (str): Query string.
-            documents (List[str]): List of document strings.
-            top_n (int): Number of top results to return.
+    @staticmethod
+    def top_n_mapping(
+        mapping: List[Dict[str, Any]], n: int = 3
+    ) -> List[Dict[str, Any]]:
+        """Returns the top N documents for a given query."""
+        return LlamaCppSimilarity.sort_mapping(mapping)[:n]
 
-        Returns:
-            List[dict]: List of top-N ranked documents with scores.
-        """
-        # Generate query embedding
-        query_embedding = self.embedding_util.process_embedding(query)
+    @staticmethod
+    def normalize_mapping(mapping: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Normalizes a list of dictionaries by their scores."""
+        scores = np.array([d["score"] for d in mapping])
+        normalized_scores = LlamaCppSimilarity.softmax(scores)
+        for i, score in enumerate(normalized_scores):
+            mapping[i]["score"] = score
+        return mapping
 
-        # Generate embeddings for documents
-        document_embeddings = [
-            self.embedding_util.process_embedding(doc) for doc in documents
-        ]
-
-        # Compute similarity scores
-        scores = np.array(
-            [
-                self.embedding_util.compute_similarity(
-                    query_embedding, doc_embedding, metric="cosine"
-                )
-                for doc_embedding in document_embeddings
-            ]
-        )
-
-        # Normalize scores with softmax
-        probabilities = self.softmax(scores)
-
-        # Sort documents by scores in descending order
-        ranked_indices = np.argsort(probabilities)[::-1][:top_n]
-        ranked_results = [
-            {"document": documents[i], "score": probabilities[i]}
-            for i in ranked_indices
-        ]
-
-        return ranked_results
+    @staticmethod
+    def rerank_mapping(
+        mapping: List[Dict[str, Any]],
+        query_embedding: np.ndarray,
+        metric: str = "cosine",
+    ) -> List[Dict[str, Any]]:
+        """Reranks the mapping based on the given scores."""
+        metric_func = LlamaCppSimilarity.get_metric(metric)
+        for doc in mapping:
+            doc["score"] = metric_func(query_embedding, doc["embedding"])
+        return mapping
 
 
 def visualize_embeddings(embeddings: List[np.ndarray], labels: List[str]):
@@ -377,12 +359,13 @@ def main():
     args = parser.parse_args()
 
     # Initialize the API and embedding utility
-    api = LlamaCppAPI()
-    embedding_util = LlamaCppEmbedding(api=api, verbose=args.verbose)
+    llama_api = LlamaCppAPI()
+    llama_embedding = LlamaCppEmbedding(api=llama_api, verbose=args.verbose)
+    llama_similarity = LlamaCppSimilarity()
 
     if args.filepath and os.path.isfile(args.filepath):
         # Process file embeddings
-        file_embedding = embedding_util.process_file_embedding(
+        file_embedding = llama_embedding.process_file_embedding(
             args.filepath,
             chunk_size=args.chunk_size,
             batch_size=args.batch_size,
@@ -394,12 +377,14 @@ def main():
         print(f"No valid file provided. Continuing with input text: '{args.input}'")
 
     # Generate query embedding
-    query_embedding = embedding_util.process_embedding(args.input)
+    query_embedding = llama_embedding.process_embedding(args.input)
     print(f"Generated embedding for input text: '{args.input}'")
 
     if file_embedding is not None:
         # Compute similarity if a file was provided
-        similarity = embedding_util.compute_similarity(query_embedding, file_embedding)
+        similarity = llama_similarity.compute_similarity(
+            query_embedding, file_embedding
+        )
         print(f"Similarity between input and file: {similarity:.4f}")
     else:
         print("No file embedding available for similarity computation.")
