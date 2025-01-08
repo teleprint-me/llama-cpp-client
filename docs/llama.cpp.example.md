@@ -1,79 +1,92 @@
-# Example Usage of llama.cpp
+# LLaMA.cpp HTTP Server Example Configuration
 
-llama.cpp is a versatile tool for natural language processing and conversation generation. It allows you to interact with various language models using customizable prompts. In this document, we will explore an example of how to use llama.cpp to generate text based on a predefined prompt template.
+## Overview
 
-## Prompt Templates for Llama Models
+The `llama.cpp` HTTP server allows you to interact with large language models through a REST API. This document provides examples for configuring and running the server, focusing on embeddings, completions, and batch processing.
 
-llama.cpp is highly adaptable to a variety of prompt templates, making it a versatile tool for interacting with different models. Various organizations and projects have developed specific template structures to cater to their unique objectives. Notably, these templates are commonly used with the Llama, Llama 2, Mistral, and Mixtral models. Let's explore an example template that is shared among these models:
+## Quick Start
 
-```plaintext
-<<SYS>>My name is [Assistant Name] and I am a helpful assistant.<</SYS>>
-[INST] Hello! My name is [User Name]. What's your name? [/INST]
-Hello, my name is [Assistant Name]. Nice to meet you!
-[INST] What can you do? [/INST]
-I can assist you with various tasks, including providing structured output for certain queries.
-[INST] How can you assist me in my programming projects? [/INST]
+### 1. Install Dependencies
+
+Ensure your system meets the requirements for building and running `llama.cpp`. Use the appropriate CMake configuration:
+
+```bash
+# For Vulkan support
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=1
+# For CUDA support
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=1
 ```
 
-This template, demonstrating a structured AI interaction, highlights llama.cpp's capability to align with different operational contexts and model requirements. It serves as a common foundation for interactions with these models.
+### 2. Start the Server
 
-In this template:
+Run the server with your desired configuration:
 
-- `<<SYS>>` is used to indicate system-level information.
-- `[INST]` is used to indicate user instructions or interactions.
-- You can replace `[Assistant Name]` and `[User Name]` with specific names or placeholders.
-- The assistant responds to user instructions within the `[INST]` sections.
+```bash
+./build/bin/llama-server -m models/7B/ggml-model.gguf --ctx-size 2048 --ubatch-size 512
+```
+> **Note**: Adjust `--ubatch-size` (default: 512) to match your hardware capacity and token processing needs.
 
-Different projects and models may use variations of this template, but it provides a starting point for structuring prompts according to the requirements of the Llama, Llama 2, Mistral, and Mixtral models.
+### 3. Verify Server Health
 
-## Using the llama.cpp Server
+Check if the server is running:
 
-To utilize the llama.cpp server with a specific model, you can use the `-m` option to specify the model you want to serve. Here's the basic command:
-
-```sh
-./vendor/llama.cpp/server -m MODEL_PATH
+```bash
+curl http://127.0.0.1:8080/health
 ```
 
-In this command:
+## Batch Size and Token Limits
 
-- The `-m` option is used to define the path to the model you want to use.
+### What is `--ubatch-size`?
 
-You have the flexibility to choose any model you prefer to serve. For a deeper understanding of available options and configuration, you can refer to the help documentation by using the following command:
+The `--ubatch-size` flag determines the **maximum number of tokens** processed per batch. A larger batch size can improve throughput but may require more memory.
 
-```sh
-./vendor/llama.cpp/server --help
+#### Default Values
+
+- `--ubatch-size`: 512
+- `--ctx-size`: 2048 (maximum context length)
+
+#### Best Practices
+
+- Set `--ubatch-size` based on available memory:
+  - **Small Models**: Use 512-1024.
+  - **Large Models**: Use 128-512 to avoid memory issues.
+- Ensure your batch size aligns with client settings (e.g., `--batch-size` in CLI).
+
+## Embeddings API Example
+
+### Generate Embeddings with Custom Batch Size
+
+```bash
+./build/bin/llama-server -m models/7B/ggml-model.gguf --ctx-size 2048 --ubatch-size 256
 ```
 
-This will provide you with a comprehensive overview of server-related options and settings.
+On the client side, configure `--batch-size` to match:
 
-## Using the llama.cpp Server Endpoints
-
-To interact with llama.cpp using a specific model and prompt, you can make an HTTP POST request to the llama.cpp server. Here's an example `curl` command for making such requests:
-
-```sh
-curl -X POST http://127.0.0.1:8080/completion \
-     -H "Content-Type: application/json" \
-     -d @- <<'EOF'
-{
-  "prompt": "<<SYS>>My name is Mistral and I am a helpful assistant.<</SYS>>\n[INST] Hello! My name is Austin. What's your name? [/INST]\nHello, my name is Mistral. Nice to meet you!\n[INST] What can you do? [/INST]\nI can assist you with various tasks, including providing structured output for certain queries.\n[INST] How can you assist me in my programming projects? [/INST]",
-  "max_tokens": 100,  # Optional parameter
-  "temperature": 0.7  # Optional parameter
-}
-EOF
+```bash
+python -m llama_cpp_client.embedding --batch-size 256 --filepath data.txt
 ```
 
-In this `curl` command:
+### Debugging Tip
 
-- The `-X POST` option specifies that it's an HTTP POST request.
-- The `-H "Content-Type: application/json"` option sets the request header to JSON format.
-- The `-d @- <<'EOF'` option sends the JSON data as the request body.
+If you encounter `500 Internal Server Error`:
 
-You have the flexibility to customize the `prompt`, `max_tokens`, and `temperature` parameters as needed. However, it's crucial to ensure that the `prompt` follows the specific structure required by the chosen model, as discussed earlier.
+1. Check the server logs for `input is too large to process`.
+2. Reduce `--batch-size` or `chunk-size` in the client.
 
-## Additional Context
+## Debugging and Troubleshooting
 
-llama.cpp is a flexible tool that has evolved to support various models and prompt structures. Different organizations and projects may adopt specific prompt templates based on their needs. The example provided here is just one illustration of how you can use llama.cpp for text generation and conversation.
+### Common Errors
 
-Feel free to explore different prompt templates and experiment with llama.cpp to achieve your specific goals.
+- **Input Overflow**: Caused by exceeding `--ubatch-size`.
+- **Mismatched Tokenization**: Ensure `--chunk-size` includes special tokens.
 
-For more details and customization options, you can refer to the llama.cpp server documentation.
+### Debugging Commands
+
+- Enable verbose logging on the server:
+  ```bash
+  ./build/bin/llama-server --verbose
+  ```
+- Inspect client logs with `--verbose`:
+  ```bash
+  python -m llama_cpp_client.embedding --verbose --batch-size 256
+  ```
