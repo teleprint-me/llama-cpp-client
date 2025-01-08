@@ -1,4 +1,6 @@
 """
+Copyright © 2023 Austin Berrio
+
 Module: llama_cpp_client/embedding.py
 
 This module contains functions for embedding simple inputs.
@@ -239,6 +241,66 @@ class LlamaCppEmbedding:
         ]
         top_indices = np.argsort(similarities)[-n:][::-1]
         return [(contents[i], similarities[i]) for i in top_indices]
+
+
+class LlamaCppReranker:
+    """Manual reranking for documents based on a query."""
+
+    def __init__(self, embedding_util: LlamaCppEmbedding):
+        """
+        Initialize the reranker.
+
+        Args:
+            embedding_util (LlamaCppEmbedding): Instance of the embedding utility.
+        """
+        self.embedding_util = embedding_util
+
+    def softmax(self, scores: np.ndarray) -> np.ndarray:
+        """Apply softmax to an array of scores."""
+        exp_scores = np.exp(scores - np.max(scores))
+        return exp_scores / exp_scores.sum()
+
+    def rerank(self, query: str, documents: List[str], top_n: int = 3) -> List[dict]:
+        """
+        Rerank documents based on their relevance to a query.
+
+        Args:
+            query (str): Query string.
+            documents (List[str]): List of document strings.
+            top_n (int): Number of top results to return.
+
+        Returns:
+            List[dict]: List of top-N ranked documents with scores.
+        """
+        # Generate query embedding
+        query_embedding = self.embedding_util.process_embedding(query)
+
+        # Generate embeddings for documents
+        document_embeddings = [
+            self.embedding_util.process_embedding(doc) for doc in documents
+        ]
+
+        # Compute similarity scores
+        scores = np.array(
+            [
+                self.embedding_util.compute_similarity(
+                    query_embedding, doc_embedding, metric="cosine"
+                )
+                for doc_embedding in document_embeddings
+            ]
+        )
+
+        # Normalize scores with softmax
+        probabilities = self.softmax(scores)
+
+        # Sort documents by scores in descending order
+        ranked_indices = np.argsort(probabilities)[::-1][:top_n]
+        ranked_results = [
+            {"document": documents[i], "score": probabilities[i]}
+            for i in ranked_indices
+        ]
+
+        return ranked_results
 
 
 def visualize_embeddings(embeddings: List[np.ndarray], labels: List[str]):
