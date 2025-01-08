@@ -58,6 +58,14 @@ class LlamaCppClient:
             panel = Panel(markdown, title=completion["role"], title_align="left")
             self.console.print(panel)
 
+    def get_token_count(self) -> int:
+        token_count = 0
+        for completion in self.history.completions:
+            if "content" in completion:
+                content = completion["content"]
+                token_count += len(self.api.tokenize(content))
+        return token_count
+
     def stream_completion(self) -> str:
         # NOTE: The API only supports individual completions at the moment
         # Currently researching how to implement multi-prompting
@@ -99,7 +107,7 @@ class LlamaCppClient:
             self.console.print(Markdown("**user**"))
             prompt = self.history.prompt()
             self.history.append({"role": "user", "content": prompt})
-
+            print()
         # NOTE: Ctrl + C (interrupt) to exit
         except KeyboardInterrupt:
             self.history.save()
@@ -122,6 +130,8 @@ class LlamaCppClient:
 
             self.history.append({"role": "assistant", "content": completion})
             self.history.save()
+            token_count = self.get_token_count()
+            print(f"Consuming {token_count} tokens from chat.\n")
         except KeyboardInterrupt:
             if self.history.completions:
                 completion = self.history.pop()
