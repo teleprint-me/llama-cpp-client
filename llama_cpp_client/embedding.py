@@ -117,7 +117,7 @@ class FileChunker:
         """
         # Determine the special token overhead
         max_tokens = batch_size - self.special_token_count
-        if chunk_size <= 0 or chunk_size > max_tokens:
+        if not (0 < chunk_size < max_tokens):
             self.logger.debug(
                 f"Chunk size adjusted to {max_tokens} to fit within batch constraints."
             )
@@ -181,7 +181,7 @@ class LlamaCppEmbedding:
         return np.mean(embedding_vectors, axis=0)
 
     def process_file_embedding(
-        self, file_path: str, chunk_size: int = 0, batch_size: int = 0
+        self, file_path: str, chunk_size: int = 0, batch_size: int = 512
     ) -> np.ndarray:
         """
         Generate an embedding for a file, optionally chunked.
