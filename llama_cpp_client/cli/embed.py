@@ -126,7 +126,7 @@ def query(
     query,
     top_n,
     metric,
-    normalize_scores,
+    normalize,
     rerank,
 ):
     """
@@ -140,27 +140,27 @@ def query(
     llama_database = LlamaCppDatabase(db_path=db_path, verbose=verbose)
 
     # Generate the query embedding
-    query_embedding = llama_database.embedding.query_embeddings(query)
+    query_embedding = llama_database.query_embeddings(query)
 
     # Perform the search or rerank, based on user preference
     if rerank:
         results = llama_database.rerank_embeddings(
             query_embeddings=query_embedding,
             metric=metric,
-            normalize_scores=normalize_scores,
+            normalize_scores=normalize,
             top_n=top_n,
         )
     else:
         results = llama_database.search_embeddings(
             query_embeddings=query_embedding,
             metric=metric,
-            normalize_scores=normalize_scores,
+            normalize_scores=normalize,
             top_n=top_n,
         )
 
     # Display the results
     click.echo(f"\nTop {top_n} Results for Query: '{query}' (Metric: {metric})\n")
-    for rank, result in enumerate(results[:top_n], 1):
+    for rank, result in enumerate(results):
         click.echo(f"Rank {rank}:")
         click.echo(f"  File: {result['file_path']}")
         click.echo(f"  Chunk ID: {result['chunk_id']}")
