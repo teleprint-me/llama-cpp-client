@@ -205,6 +205,7 @@ class LlamaCppEmbedding:
         embeddings = [self.process_embedding(chunk) for chunk in chunks]
         return np.mean(embeddings, axis=0)
 
+    # TODO: Rename to `process_file_embedding_with_metadata` for clarity.
     def process_file_embedding_entries(
         self, file_path: str, chunk_size: int, batch_size: int
     ) -> List[dict]:
