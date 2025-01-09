@@ -1,3 +1,7 @@
+# Files
+*.db
+
+# Paths
 /vendor
 /llama.cpp
 /local
