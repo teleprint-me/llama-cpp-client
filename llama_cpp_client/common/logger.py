@@ -10,7 +10,7 @@ import sys
 LOGGER_FORMAT = "%(asctime)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s"
 
 
-def get_default_logger(name=None, level=logging.DEBUG):
+def get_logger(name=None, level=logging.DEBUG):
     """
     Get a default logger instance with specified configuration.
 
@@ -26,7 +26,7 @@ def get_default_logger(name=None, level=logging.DEBUG):
     Example:
         To get a default logger, you can use this function as follows:
         ```
-        logger = get_default_logger("MyLogger", logging.INFO)
+        logger = get_logger("MyLogger", logging.INFO)
         logger.info("This is an info message.")
         ```
 

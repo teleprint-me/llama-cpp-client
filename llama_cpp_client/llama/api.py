@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 
 import requests
 
-from llama_cpp_client.common.logger import get_default_logger
+from llama_cpp_client.common.logger import get_logger
 from llama_cpp_client.llama.request import LlamaCppRequest
 
 
@@ -58,7 +58,7 @@ class LlamaCppAPI:
         self.data.update(kwargs)
 
         # Setup logger
-        self.logger = get_default_logger("LlamaCppAPI", level=log_level)
+        self.logger = get_logger(self.__class__.__name__, level=log_level)
         self.logger.debug("Initialized LlamaCppAPI instance.")
 
     def error(self, code: int, message: str, type: str) -> dict[str, Any]:

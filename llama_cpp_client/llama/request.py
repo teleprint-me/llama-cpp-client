@@ -12,7 +12,7 @@ from typing import Any, Dict, Generator
 
 import requests
 
-from llama_cpp_client.common.logger import get_default_logger
+from llama_cpp_client.common.logger import get_logger
 
 
 class StreamNotAllowedError(Exception):
@@ -28,7 +28,7 @@ class LlamaCppRequest:
         base_url: str = "http://127.0.0.1",
         port: str = "8080",
         headers: Dict[str, str] = None,
-        log_level: int = None,
+        log_level: int = logging.INFO,
     ):
         """
         Initialize the LlamaCppRequest instance.
@@ -40,9 +40,7 @@ class LlamaCppRequest:
         """
         self.base_url = f"{base_url}:{port}"
         self.headers = headers or {"Content-Type": "application/json"}
-        self.logger = get_default_logger(
-            "LlamaCppRequest", level=log_level or logging.INFO
-        )
+        self.logger = get_logger(self.__class__.__name__, level=log_level)
         self.logger.debug("Initialized LlamaCppRequest instance.")
 
     def _handle_response(self, response: requests.Response) -> Any:
