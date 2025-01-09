@@ -18,48 +18,45 @@ from rich.live import Live
 from rich.markdown import Markdown, Panel
 
 from llama_cpp_client.api import LlamaCppAPI
-from llama_cpp_client.embedding import LlamaCppEmbedding, LlamaCppReranker
+from llama_cpp_client.embedding import (
+    LlamaCppEmbedding,
+    LlamaCppReranker,
+    LlamaCppSimilarity,
+)
 from llama_cpp_client.logger import get_default_logger
 
 
 class LlamaCppDatabase:
-    """
-    Database for storing embeddings and facilitating RAG workflows.
-    """
+    """Database for storing embeddings and facilitating RAG workflows."""
 
     def __init__(self, api: LlamaCppAPI, db_path: str, verbose: bool = False) -> None:
-        """Initialize the database."""
         self.api = api
         self.embedding = LlamaCppEmbedding(self.api, verbose=verbose)
-        self.reranker = LlamaCppReranker(self.embedding)  # Optional: Add verbosity flag
+        self.similarity = LlamaCppSimilarity()
         self.logger = get_default_logger(
             name=self.__class__.__name__,
             level=logging.DEBUG if verbose else logging.INFO,
         )
-
-        # Setup database parameters
         self.db_path = db_path
         self.db = sqlite3.connect(self.db_path)
         self.db.row_factory = sqlite3.Row
-
-        # Create the embeddings table if it doesn't already exist
         self.db.execute(
             """CREATE TABLE IF NOT EXISTS embeddings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_path TEXT UNIQUE,
-                text TEXT,
-                embedding TEXT
+                file_path TEXT NOT NULL,
+                chunk_id INTEGER NOT NULL,
+                chunk TEXT NOT NULL,
+                embedding TEXT NOT NULL,
+                UNIQUE(file_path, chunk_id)
             )"""
         )
         self.db.commit()
+        self.logger.debug("Database created at: %s" % self.db_path)
 
-    def insert_embedding_by_file(self, file_path: str) -> None:
-        """
-        Insert a new embedding into the database by processing the file.
-
-        Args:
-            file_path (str): Path to the file to process and embed.
-        """
+    def insert_embedding_from_file(
+        self, file_path: str, chunk_size: int = 0, batch_size: int = 512
+    ) -> None:
+        """Insert a new embedding into the database by processing the file."""
         # Check if the file already exists in the database
         cursor = self.db.execute(
             "SELECT 1 FROM embeddings WHERE file_path = ?", (file_path,)
@@ -69,69 +66,91 @@ class LlamaCppDatabase:
             return
 
         # Process the file and generate embeddings
-        embedding = self.embedding.process_file_embedding(file_path)
-        with open(file_path, "r") as f:
-            text = f.read()
+        chunked_embeddings = self.embedding.process_file_embedding_entries(
+            file_path, chunk_size, batch_size
+        )
 
         # Serialize the embedding and insert it
-        serialized_embedding = json.dumps(embedding.tolist())
-        self.db.execute(
-            """INSERT INTO embeddings (file_path, text, embedding) VALUES (?, ?, ?)""",
-            (file_path, text, serialized_embedding),
-        )
+        for embedding in chunked_embeddings:
+            chunk_id = embedding["chunk_id"]
+            chunk = embedding["chunk"]
+            embedding = embedding["embedding"]
+            serialized_embedding = json.dumps(embedding.tolist())
+            self.db.execute(
+                """
+                INSERT INTO embeddings (file_path, chunk_id, chunk, embedding)
+                VALUES (?, ?, ?, ?)
+                """,
+                (file_path, chunk_id, chunk, serialized_embedding),
+            )
         self.db.commit()
         self.logger.debug(f"Inserted embedding for {file_path}.")
 
-    def insert_embeddings_from_directory(self, dir_path: str) -> None:
-        """
-        Insert embeddings for all files in a directory.
-
-        Args:
-            dir_path (str): Path to the directory containing files to process.
-        """
+    def insert_embeddings_from_directory(
+        self, dir_path: str, chunk_size: int = 0, batch_size: int = 512
+    ) -> None:
+        """Insert embeddings for all files in a directory."""
         for root, _, files in os.walk(dir_path):
             for file in files:
                 file_path = os.path.join(root, file)
-                self.insert_embedding_by_file(file_path)
+                self.insert_embedding_by_file(file_path, chunk_size, batch_size)
+        self.logger.debug("Inserted embeddings from directory: %s" % dir_path)
 
-    def search_similar_embeddings(self, query: str, top_n: int = 3) -> List[dict]:
-        """
-        Search for the top-N most similar embeddings in the database to a given query.
+    def query_embeddings(self, query: str) -> np.ndarray:
+        """Generate embeddings for the given query."""
+        return self.embedding.process_embedding(query)
 
-        Args:
-            query (str): Query text to search against.
-            top_n (int): Number of top results to return.
-
-        Returns:
-            List[dict]: List of top-N similar embeddings with their scores.
-        """
-        # Generate query embedding
-        query_embedding = self.embedding.process_embedding(query)
-
-        # Retrieve and compare all embeddings
+    def search_embeddings(
+        self,
+        query_embeddings: np.ndarray,
+        metric: str = "cosine",
+        normalize_scores: bool = False,
+    ) -> List[dict]:
+        """Search for embeddings in the database that match a given query."""
         rows = self.db.execute(
-            "SELECT file_path, text, embedding FROM embeddings"
+            "SELECT file_path, chunk_id, chunk, embedding FROM embeddings"
         ).fetchall()
+
+        # Compute similarity scores
         results = []
+        metric_func = self.similarity.get_metric(metric=metric)
         for row in rows:
             stored_embedding = np.array(json.loads(row["embedding"]))
-            similarity = np.dot(query_embedding, stored_embedding) / (
-                np.linalg.norm(query_embedding) * np.linalg.norm(stored_embedding)
-            )
+            score = metric_func(query_embeddings, stored_embedding)
             results.append(
                 {
                     "file_path": row["file_path"],
-                    "text": row["text"],
-                    "similarity": similarity,
+                    "chunk_id": row["chunk_id"],
+                    "chunk": row["chunk"],
+                    "score": score,
                 }
             )
 
-        # Sort results by similarity and return the top-N
-        sorted_results = sorted(results, key=lambda x: x["similarity"], reverse=True)[
-            :top_n
-        ]
-        self.logger.debug(f"Found {len(sorted_results)} similar embeddings.")
-        return sorted_results
+        if normalize_scores:
+            self.similarity.normalize_mapping(results)
+
+        self.logger.debug(f"Found {len(results)} relevant chunks in the database.")
+        return results
+
+    def rerank_embeddings(
+        self,
+        query_embeddings: np.ndarray,
+        metric: str = "cosine",
+        normalize_scores: bool = False,
+        top_n: int = 3,
+    ) -> List[dict]:
+        """Search for the top-N most similar embeddings in the database to a given query."""
+        # Perform the search
+        results = self.search_embeddings(query_embeddings, metric, normalize_scores)
+        sorted_results = self.similarity.sort_mapping(results)
+
+        # Rerank results (modifies in place)
+        self.similarity.rerank_mapping(sorted_results, query_embeddings, metric)
+
+        # Retrieve the top-N results
+        top_results = self.similarity.top_n_mapping(sorted_results, n=top_n)
+        self.logger.debug(f"Top {top_n} results: {top_results}")
+        return top_results
 
 
 def main():
@@ -141,6 +160,12 @@ def main():
         type=str,
         default="data/llama.db",
         help="Path to the SQLite database.",
+    )
+    parser.add_argument(
+        "--query",
+        type=str,
+        default=None,
+        help="Query embedding for a single file. Default: None",
     )
     parser.add_argument(
         "--insert-file",
