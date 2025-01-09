@@ -69,23 +69,23 @@ def main():
     args = get_arguments()
 
     # Initialize the LlamaCppRequest instance
-    llama_cpp_request = LlamaCppRequest(base_url=args.base_url, port=args.port)
+    llama_request = LlamaCppRequest(base_url=args.base_url, port=args.port)
     # Initialize the LlamaCppAPI instance
-    llama_cpp_api = LlamaCppAPI(request=llama_cpp_request)
+    llama_api = LlamaCppAPI(request=llama_request)
 
     if args.file:
         path = pathlib.Path(args.prompt)
         with open(path, "r") as file:
             content = file.read()
-        encodings = llama_cpp_api.tokenize(content, args.special)
+        encodings = llama_api.tokenize(content, args.special)
     else:
-        encodings = llama_cpp_api.tokenize(args.prompt, args.special)
+        encodings = llama_api.tokenize(args.prompt, args.special)
 
     if args.encoded:
         print(encodings)
 
     # Detokenize the tokens
-    decodings = llama_cpp_api.detokenize(encodings)
+    decodings = llama_api.detokenize(encodings)
     if args.decoded:
         print(decodings)
 
