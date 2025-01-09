@@ -370,7 +370,7 @@ class LlamaCppDatabase:
         for root, _, files in os.walk(dir_path):
             for file in files:
                 file_path = os.path.join(root, file)
-                self.insert_embedding_by_file(file_path, chunk_size, batch_size)
+                self.insert_embedding_from_file(file_path, chunk_size, batch_size)
             self.logger.debug("Inserted embeddings from directory: %s" % root)
         self.logger.debug("Inserted embeddings from directory: %s" % dir_path)
 
