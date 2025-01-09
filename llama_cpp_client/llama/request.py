@@ -1,7 +1,9 @@
 """
 Copyright © 2023 Austin Berrio
 
-Module: llama_cpp_client.request
+Module: llama_cpp_client.llama.request
+
+Description: Module for handling low-level requests to the LlamaCpp REST API.
 """
 
 import json
@@ -10,7 +12,7 @@ from typing import Any, Dict, Generator
 
 import requests
 
-from llama_cpp_client.logger import get_default_logger
+from llama_cpp_client.common.logger import get_default_logger
 
 
 class StreamNotAllowedError(Exception):

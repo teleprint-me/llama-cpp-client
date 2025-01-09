@@ -1,5 +1,9 @@
 """
-Module: llama_cpp_client.history
+Copyright © 2023 Austin Berrio
+
+Module: llama_cpp_client.llama.history
+
+Description: Module for handling language models completion history.
 """
 
 import json

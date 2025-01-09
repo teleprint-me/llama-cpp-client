@@ -1,7 +1,9 @@
 """
 Copyright © 2023 Austin Berrio
 
-Module: llama_cpp_client.client
+Module: llama_cpp_client.llama.client
+
+Description: High-level client for performing language model inference.
 """
 
 import argparse
@@ -11,9 +13,9 @@ from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown, Panel
 
-from llama_cpp_client.api import LlamaCppAPI
-from llama_cpp_client.history import LlamaCppHistory
-from llama_cpp_client.request import LlamaCppRequest
+from llama_cpp_client.llama.api import LlamaCppAPI
+from llama_cpp_client.llama.history import LlamaCppHistory
+from llama_cpp_client.llama.request import LlamaCppRequest
 
 
 class LlamaCppClient:

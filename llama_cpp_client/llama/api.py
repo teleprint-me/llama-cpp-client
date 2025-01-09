@@ -1,7 +1,9 @@
 """
 Copyright © 2023 Austin Berrio
 
-Module: llama_cpp_client.api
+Module: llama_cpp_client.llama.api
+
+Description: High-level Requests API for interacting with the LlamaCpp REST API.
 """
 
 import html
@@ -10,8 +12,8 @@ from typing import Any, Dict, List
 
 import requests
 
-from llama_cpp_client.logger import get_default_logger
-from llama_cpp_client.request import LlamaCppRequest
+from llama_cpp_client.common.logger import get_default_logger
+from llama_cpp_client.llama.request import LlamaCppRequest
 
 
 class LlamaCppAPI:

@@ -1,13 +1,9 @@
 """
 Copyright © 2023 Austin Berrio
 
-Module: llama_cpp_client/embedding.py
+Module: llama_cpp_client.llama.embedding
 
-This module contains functions for embedding simple inputs.
-
-- Generate embeddings for simple inputs (e.g., "Hello, World!", "Hi, Universe!").
-- Compute pairwise similarity between them.
-- Visualize small-scale embeddings to build intuition.
+Description: Module for handling language model embeddings.
 """
 
 import argparse
@@ -22,8 +18,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
 
-from llama_cpp_client.api import LlamaCppAPI
-from llama_cpp_client.logger import get_default_logger
+from llama_cpp_client.common.logger import get_default_logger
+from llama_cpp_client.llama.api import LlamaCppAPI
 
 
 class FileChunker:
