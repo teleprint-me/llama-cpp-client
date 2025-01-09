@@ -6,7 +6,6 @@ Module: llama_cpp_client.llama.embedding
 Description: Module for handling language model embeddings.
 """
 
-import argparse
 import json
 import logging
 import os
@@ -388,6 +387,7 @@ class LlamaCppDatabase:
         query_embeddings: np.ndarray,
         metric: str = "cosine",
         normalize_scores: bool = False,
+        top_n: int = 3,
     ) -> List[dict]:
         """Search for embeddings in the database that match a given query."""
         rows = self.db.execute(
@@ -415,8 +415,9 @@ class LlamaCppDatabase:
         if normalize_scores:
             self.similarity.normalize_mapping(results)
 
-        self.logger.debug(f"Found {len(results)} relevant chunks in the database.")
-        return results
+        top_results = self.similarity.top_n_mapping(results, top_n)
+        self.logger.debug(f"Found {len(top_results)} relevant chunks in the database.")
+        return top_results
 
     def rerank_embeddings(
         self,
@@ -449,87 +450,3 @@ def visualize_embeddings(embeddings: List[np.ndarray], labels: List[str]):
     plt.legend()
     plt.title("Embedding Visualization")
     plt.show()
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Embedding generator and similarity search."
-    )
-    parser.add_argument(
-        "--input",
-        type=str,
-        default="Hello, World!",
-        help="Input text for generating embeddings. Default: 'Hello, World!'",
-    )
-    parser.add_argument(
-        "--filepath",
-        type=str,
-        default=None,
-        help="Path to a file for embedding generation. Default: None",
-    )
-    parser.add_argument(
-        "--chunk-size",
-        type=int,
-        default=0,
-        help="Chunk size for splitting the file. Defaults to the model's embedding size.",
-    )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=512,
-        help=(
-            "Maximum number of tokens to process per batch. This must match the server's "
-            "--ubatch-size setting. Defaults to 512. Adjust as needed based on your "
-            "server configuration to avoid input size errors."
-        ),
-    )
-    parser.add_argument(
-        "--top-n",
-        type=int,
-        default=3,
-        help="Number of top similar content results to display. Default: 3",
-    )
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Enable verbose logging.",
-    )
-    args = parser.parse_args()
-
-    # Initialize the API and embedding utility
-    llama_api = LlamaCppAPI()
-    llama_embedding = LlamaCppEmbedding(llama_api, verbose=args.verbose)
-    llama_similarity = LlamaCppSimilarity()
-
-    if args.filepath and os.path.isfile(args.filepath):
-        # Process file embeddings
-        file_embedding = llama_embedding.process_file_embedding(
-            args.filepath,
-            chunk_size=args.chunk_size,
-            batch_size=args.batch_size,
-        )
-        print(f"Generated embedding for file: {args.filepath}")
-    else:
-        # Process single text embedding
-        file_embedding = None
-        print(f"No valid file provided. Continuing with input text: '{args.input}'")
-
-    # Generate query embedding
-    query_embedding = llama_embedding.process_embedding(args.input)
-    print(f"Generated embedding for input text: '{args.input}'")
-
-    if file_embedding is not None:
-        # Compute similarity if a file was provided
-        similarity = llama_similarity.compute_similarity(
-            query_embedding, file_embedding
-        )
-        print(f"Similarity between input and file: {similarity:.4f}")
-    else:
-        print("No file embedding available for similarity computation.")
-
-    # If future batch processing or additional content embeddings exist,
-    # `find_top_n_similar` could be used here with a collection of embeddings and contents.
-
-
-if __name__ == "__main__":
-    main()
