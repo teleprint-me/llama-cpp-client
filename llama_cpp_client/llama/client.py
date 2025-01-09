@@ -6,8 +6,6 @@ Module: llama_cpp_client.llama.client
 Description: High-level client for performing language model inference.
 """
 
-import argparse
-
 from rich import pretty, print
 from rich.box import MINIMAL, Box
 from rich.console import Console
@@ -16,7 +14,6 @@ from rich.markdown import Markdown, Panel
 
 from llama_cpp_client.llama.api import LlamaCppAPI
 from llama_cpp_client.llama.history import LlamaCppHistory
-from llama_cpp_client.llama.request import LlamaCppRequest
 
 
 class LlamaCppClient:
