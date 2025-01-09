@@ -1,14 +1,20 @@
 """
 Copyright © 2023 Austin Berrio
 
-Module: llama_cpp_client.tokenizer
+Script: llama_cpp_client.cli.tokenize
+
+Description: Experimental script for handling REST API tokenizer requests.
+
+Usage Example:
+python -m llama_cpp_client.cli.tokenizer -e 'Hello, world!'
+[9906, 11, 1917, 0]
 """
 
 import argparse
 import pathlib
 
-from llama_cpp_client.api import LlamaCppAPI
-from llama_cpp_client.request import LlamaCppRequest
+from llama_cpp_client.llama.api import LlamaCppAPI
+from llama_cpp_client.llama.request import LlamaCppRequest
 
 
 def get_arguments() -> argparse.Namespace:

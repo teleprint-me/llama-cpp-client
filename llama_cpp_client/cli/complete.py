@@ -8,10 +8,10 @@ Description: CLI script to perform completions using the llama.cpp server and RE
 
 import argparse
 
-from llama_cpp_client.api import LlamaCppAPI
-from llama_cpp_client.client import LlamaCppClient
-from llama_cpp_client.history import LlamaCppHistory
-from llama_cpp_client.request import LlamaCppRequest
+from llama_cpp_client.llama.api import LlamaCppAPI
+from llama_cpp_client.llama.client import LlamaCppClient
+from llama_cpp_client.llama.history import LlamaCppHistory
+from llama_cpp_client.llama.request import LlamaCppRequest
 
 
 def get_arguments() -> argparse.Namespace:

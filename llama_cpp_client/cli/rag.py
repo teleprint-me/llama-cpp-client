@@ -1,7 +1,9 @@
 """
 Copyright © 2023 Austin Berrio
 
-Module: llama_cpp_client.rag
+Script: llama_cpp_client.cli.rag
+
+Description: Experimental script for performing Retrieval Augmented Generation requests.
 """
 
 import argparse
@@ -17,13 +19,13 @@ from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown, Panel
 
-from llama_cpp_client.api import LlamaCppAPI
-from llama_cpp_client.embedding import (
+from llama_cpp_client.common.logger import get_default_logger
+from llama_cpp_client.llama.api import LlamaCppAPI
+from llama_cpp_client.llama.embedding import (
     LlamaCppDatabase,
     LlamaCppEmbedding,
     LlamaCppSimilarity,
 )
-from llama_cpp_client.logger import get_default_logger
 
 
 # Retrieval Augmented Generation (RAG)
