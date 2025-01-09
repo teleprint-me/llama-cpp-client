@@ -16,7 +16,7 @@ def common_options(command_func):
     decorators = [
         click.option(
             "--db-path",
-            type=click.Path(exists=True, dir_okay=False),
+            type=click.Path(exists=False, file_okay=True, dir_okay=False),
             required=True,
             help="Path to the SQLite database file.",
         ),
@@ -98,26 +98,24 @@ def populate(db_path, verbose, chunk_size, batch_size, file, directory):
 )
 @click.option(
     "--metric",
-    type=str,
-    # i need a list of options
     type=click.Choice(["cosine", "euclidean", "manhattan"]),
     default="cosine",
     show_default=True,
-    help="Similarity metric to use.",
+    help="Similarity metric to use for ranking.",
 )
 @click.option(
-    "--normalize-scores",
-    type=bool,
+    "--normalize",
+    is_flag=True,
     default=False,
     show_default=True,
-    help="Normalize the embeddings scores before computing similarity.",
+    help="Normalize similarity scores before ranking.",
 )
 @click.option(
     "--rerank",
-    type=bool,
+    is_flag=True,
     default=False,
     show_default=True,
-    help="Rerank the embeddings using the cosine similarity.",
+    help="Rerank the results using the chosen similarity metric.",
 )
 @common_options
 def query(
@@ -133,6 +131,8 @@ def query(
 ):
     """
     Query the LLAMA database for the most similar embeddings to a given input.
+
+    Options allow for metric selection, score normalization, and reranking.
     """
     if top_n <= 0:
         raise click.BadParameter("--top-n must be greater than 0.")
@@ -142,7 +142,7 @@ def query(
     # Generate the query embedding
     query_embedding = llama_database.embedding.query_embeddings(query)
 
-    # Search the database
+    # Perform the search or rerank, based on user preference
     if rerank:
         results = llama_database.rerank_embeddings(
             query_embeddings=query_embedding,
@@ -159,7 +159,8 @@ def query(
         )
 
     # Display the results
-    for rank, result in enumerate(results, 1):
+    click.echo(f"\nTop {top_n} Results for Query: '{query}' (Metric: {metric})\n")
+    for rank, result in enumerate(results[:top_n], 1):
         click.echo(f"Rank {rank}:")
         click.echo(f"  File: {result['file_path']}")
         click.echo(f"  Chunk ID: {result['chunk_id']}")
