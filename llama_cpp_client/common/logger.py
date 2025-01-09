@@ -1,7 +1,7 @@
 """
 Copyright © 2023 Austin Berrio
 
-Module: llama_cpp_client.logger
+Module: llama_cpp_client.common.logger
 """
 
 import logging
