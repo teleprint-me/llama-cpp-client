@@ -119,7 +119,7 @@ def get_arguments() -> argparse.Namespace:
         type=str,
         default=DEFAULT_BOX,
         choices=BOX_CHOICES,
-        help="The box type to use for displaying the output.",
+        help="The box type to use for displaying the output. Default: 'minimal'.",
     )
     return parser.parse_args()
 
