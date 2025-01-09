@@ -27,7 +27,9 @@ from llama_cpp_client.logger import get_default_logger
 class FileChunker:
     """Class for processing and chunking file contents."""
 
-    def __init__(self, api: LlamaCppAPI, file_path: str, verbose: bool = False) -> None:
+    def __init__(
+        self, file_path: str, api: LlamaCppAPI = None, verbose: bool = False
+    ) -> None:
         """
         Initialize the FileChunker with the API instance and file path.
 
@@ -36,7 +38,7 @@ class FileChunker:
             file_path (str): Path to the file to be processed.
             verbose (bool): Whether to enable verbose logging.
         """
-        self.api = api
+        self.api = api if api is not None else LlamaCppAPI()
         self.verbose = verbose
         self.logger = get_default_logger(
             name=self.__class__.__name__,
@@ -151,7 +153,7 @@ class FileChunker:
 class LlamaCppEmbedding:
     """Class for processing and generating embeddings for single or batched inputs."""
 
-    def __init__(self, api: LlamaCppAPI, verbose: bool = False) -> None:
+    def __init__(self, api: LlamaCppAPI = None, verbose: bool = False) -> None:
         """
         Initialize the LlamaCppEmbedding class.
 
@@ -159,7 +161,7 @@ class LlamaCppEmbedding:
             api (LlamaCppAPI): The API instance for interacting with the model.
             verbose (bool): Whether to enable verbose logging.
         """
-        self.api = api
+        self.api = api if api is not None else LlamaCppAPI()
         self.verbose = verbose
 
     def process_embedding(self, content: str) -> np.ndarray:
@@ -193,7 +195,7 @@ class LlamaCppEmbedding:
         Returns:
             np.ndarray: A normalized embedding vector for the entire file.
         """
-        chunker = FileChunker(api=self.api, file_path=file_path, verbose=self.verbose)
+        chunker = FileChunker(file_path, api=self.api, verbose=self.verbose)
         chunker.normalize_text()  # Apply minimal normalization
         chunks = chunker.chunk_text_with_model(
             chunk_size=chunk_size, batch_size=batch_size
@@ -205,7 +207,7 @@ class LlamaCppEmbedding:
         self, file_path: str, chunk_size: int, batch_size: int
     ) -> List[dict]:
         """Returns a list of embeddings for a file with metadata."""
-        chunker = FileChunker(api=self.api, file_path=file_path, verbose=self.verbose)
+        chunker = FileChunker(file_path, api=self.api, verbose=self.verbose)
         chunker.normalize_text()
         chunks = chunker.chunk_text_with_model(
             chunk_size=chunk_size, batch_size=batch_size
@@ -360,7 +362,7 @@ def main():
 
     # Initialize the API and embedding utility
     llama_api = LlamaCppAPI()
-    llama_embedding = LlamaCppEmbedding(api=llama_api, verbose=args.verbose)
+    llama_embedding = LlamaCppEmbedding(llama_api, verbose=args.verbose)
     llama_similarity = LlamaCppSimilarity()
 
     if args.filepath and os.path.isfile(args.filepath):
