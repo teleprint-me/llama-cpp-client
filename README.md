@@ -114,10 +114,26 @@ Open your preferred web browser and visit `localhost:8080` to access the `llama.
 
 ### CLI
 
-**How to use the command-line interface**
+#### Completions
+
+**How to use the completions interface**
 
 ```sh
-python -m llama_cpp_client.client -n llama-3-test --stop "<|eot_id|>"
+python -m llama_cpp_client.cli.complete -n llama-3-test --stop "<|eot_id|>"
+```
+
+#### Embeddings
+
+**How to use the embeddings interface**
+
+```sh
+python -m llama_cpp_client.cli.embed populate --db-path embeddings.db --directory data
+```
+
+**Query the embeddings**
+
+```sh
+python -m llama_cpp_client.cli.embed query --db-path embeddings.db "What is the live display?"
 ```
 
 ### API
@@ -125,7 +141,7 @@ python -m llama_cpp_client.client -n llama-3-test --stop "<|eot_id|>"
 **How to use the application programming interface**
 
 ```python
-from llama_cpp_client.request import LlamaCppRequest
+from llama_cpp_client.llama.request import LlamaCppRequest
 
 # Initialize the LlamaCppRequest instance
 llama_cpp_request = LlamaCppRequest(base_url="http://127.0.0.1", port="8080")
@@ -162,7 +178,7 @@ completions.append({"prompt": llama_prompt, "output": llama_output})
 Note that most of the Python API modules for `llama_cpp_client` can be executed as a CLI tool providing an example, test, and output sample all in one place.
 
 ```sh
-python -m llama_cpp_client.request
+python -m llama_cpp_client.llama.request
 ```
 
 The general idea is to keep the implementation as simple as possible for now. 
