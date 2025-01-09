@@ -18,19 +18,17 @@ from rich.live import Live
 from rich.markdown import Markdown, Panel
 
 from llama_cpp_client.api import LlamaCppAPI
-from llama_cpp_client.embedding import (
-    LlamaCppEmbedding,
-    LlamaCppReranker,
-    LlamaCppSimilarity,
-)
+from llama_cpp_client.embedding import LlamaCppEmbedding, LlamaCppSimilarity
 from llama_cpp_client.logger import get_default_logger
 
 
 class LlamaCppDatabase:
     """Database for storing embeddings and facilitating RAG workflows."""
 
-    def __init__(self, api: LlamaCppAPI, db_path: str, verbose: bool = False) -> None:
-        self.api = api
+    def __init__(
+        self, db_path: str, api: LlamaCppAPI = None, verbose: bool = False
+    ) -> None:
+        self.api = api if api is not None else LlamaCppAPI()
         self.embedding = LlamaCppEmbedding(self.api, verbose=verbose)
         self.similarity = LlamaCppSimilarity()
         self.logger = get_default_logger(
@@ -98,7 +96,11 @@ class LlamaCppDatabase:
 
     def query_embeddings(self, query: str) -> np.ndarray:
         """Generate embeddings for the given query."""
-        return self.embedding.process_embedding(query)
+        query_embeddings = self.embedding.process_embedding(query)
+        self.logger.debug(
+            f"Generated query embedding with size: {query_embeddings.shape}"
+        )
+        return query_embeddings
 
     def search_embeddings(
         self,
@@ -117,6 +119,9 @@ class LlamaCppDatabase:
         for row in rows:
             stored_embedding = np.array(json.loads(row["embedding"]))
             score = metric_func(query_embeddings, stored_embedding)
+            self.logger.debug(
+                f"Computed score: {score} for chunk ID: {row['chunk_id']}"
+            )
             results.append(
                 {
                     "file_path": row["file_path"],
