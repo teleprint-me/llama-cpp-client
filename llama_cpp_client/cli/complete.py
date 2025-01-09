@@ -8,10 +8,24 @@ Description: CLI script to perform completions using the llama.cpp server and RE
 
 import argparse
 
+import rich.box
+
 from llama_cpp_client.llama.api import LlamaCppAPI
 from llama_cpp_client.llama.client import LlamaCppClient
 from llama_cpp_client.llama.history import LlamaCppHistory
 from llama_cpp_client.llama.request import LlamaCppRequest
+
+# Create a mapping between the box type enumerations and human readable strings
+BOX_TO_STRING = {
+    "ascii": rich.box.ASCII,
+    "markdown": rich.box.MARKDOWN,
+    "minimal": rich.box.MINIMAL,
+    "rounded": rich.box.ROUNDED,
+    "simple": rich.box.SIMPLE,
+    "square": rich.box.SQUARE,
+}
+BOX_CHOICES = tuple(BOX_TO_STRING.keys())
+DEFAULT_BOX = "minimal"
 
 
 def get_arguments() -> argparse.Namespace:
@@ -100,6 +114,13 @@ def get_arguments() -> argparse.Namespace:
         default="",
         help="List of stop tokens to ignore (default: empty string; use comma delimited list, no spaces).",
     )
+    parser.add_argument(
+        "--box",
+        type=str,
+        default=DEFAULT_BOX,
+        choices=BOX_CHOICES,
+        help="The box type to use for displaying the output.",
+    )
     return parser.parse_args()
 
 
@@ -128,9 +149,12 @@ def main():
     else:
         llama_cpp_history = LlamaCppHistory(args.session_name, args.system_message)
 
+    box_type = BOX_TO_STRING[args.box]
+
     llama_cpp_client = LlamaCppClient(
         api=llama_cpp_api,
         history=llama_cpp_history,
+        box=box_type,
     )
     # `grammar`: Set grammar for grammar-based sampling (default: no grammar)
 

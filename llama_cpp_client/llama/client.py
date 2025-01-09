@@ -9,6 +9,7 @@ Description: High-level client for performing language model inference.
 import argparse
 
 from rich import pretty, print
+from rich.box import MINIMAL, Box
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown, Panel
@@ -23,6 +24,7 @@ class LlamaCppClient:
         self,
         api: LlamaCppAPI = None,
         history: LlamaCppHistory = None,
+        box: Box = MINIMAL,
     ) -> None:
         # install automatic pretty printing in python repl
         pretty.install()
@@ -38,6 +40,7 @@ class LlamaCppClient:
                 system_message="My name is Llama. I am a helpful assistant.",
             )
 
+        self.box = box
         self.console = Console()
 
     def _render_completions_once_on_start(self) -> None:
@@ -50,14 +53,26 @@ class LlamaCppClient:
             if completion["role"] == "assistant":
                 element += completion["content"]
             markdown = Markdown(element)
-            panel = Panel(markdown, title=completion["role"], title_align="left")
+            panel = Panel(
+                markdown,
+                box=self.box,
+                title=completion["role"],
+                title_align="left",
+                highlight=True,
+            )
             self.console.print(panel, end="")
 
     def _render_chat_completions_once_on_start(self) -> None:
         self.history.load()
         for completion in self.history:
             markdown = Markdown(completion["content"])
-            panel = Panel(markdown, title=completion["role"], title_align="left")
+            panel = Panel(
+                markdown,
+                box=self.box,
+                title=completion["role"],
+                title_align="left",
+                highlight=True,
+            )
             self.console.print(panel)
 
     def get_token_count(self) -> int:
@@ -83,7 +98,13 @@ class LlamaCppClient:
                     token = response["content"]
                     content += token
                     markdown = Markdown(content)
-                    panel = Panel(markdown, title="Completion", title_align="left")
+                    panel = Panel(
+                        markdown,
+                        box=self.box,
+                        title="Completion",
+                        title_align="left",
+                        highlight=True,
+                    )
                     live.update(panel, refresh=True)
         return content
 
@@ -100,7 +121,13 @@ class LlamaCppClient:
                     token = response["choices"][0]["delta"]["content"]
                     content += token
                     markdown = Markdown(content)
-                    panel = Panel(markdown, title="ChatCompletion", title_align="left")
+                    panel = Panel(
+                        markdown,
+                        box=self.box,
+                        title="ChatCompletion",
+                        title_align="left",
+                        highlight=True,
+                    )
                     live.update(panel, refresh=True)
         return content
 
