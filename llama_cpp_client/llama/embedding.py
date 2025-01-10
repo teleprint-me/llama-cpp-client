@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
 
-from llama_cpp_client.common.logger import get_default_logger
+from llama_cpp_client.common.logger import get_logger
 from llama_cpp_client.llama.api import LlamaCppAPI
 
 
@@ -37,7 +37,7 @@ class FileChunker:
         """
         self.api = api if api is not None else LlamaCppAPI()
         self.verbose = verbose
-        self.logger = get_default_logger(
+        self.logger = get_logger(
             name=self.__class__.__name__,
             level=logging.DEBUG if verbose else logging.INFO,
         )
@@ -268,16 +268,19 @@ class LlamaCppSimilarity:
         return exp_scores / exp_scores.sum()
 
     @staticmethod
-    def sort_mapping(mapping: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def sort_mapping(
+        mapping: List[Dict[str, Any]], metric: str = "cosine"
+    ) -> List[Dict[str, Any]]:
         """Returns a sorted list of dictionaries by a given score."""
-        return sorted(mapping, key=lambda x: x["score"], reverse=True)
+        reverse = metric == "cosine"  # Descending for cosine, ascending for distances
+        return sorted(mapping, key=lambda x: x["score"], reverse=reverse)
 
     @staticmethod
     def top_n_mapping(
-        mapping: List[Dict[str, Any]], n: int = 3
+        mapping: List[Dict[str, Any]], metric: str = "cosine", n: int = 3
     ) -> List[Dict[str, Any]]:
         """Returns the top N documents for a given query."""
-        return LlamaCppSimilarity.sort_mapping(mapping)[:n]
+        return LlamaCppSimilarity.sort_mapping(mapping, metric)[:n]
 
     @staticmethod
     def normalize_mapping(mapping: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -310,7 +313,7 @@ class LlamaCppDatabase:
         self.api = api if api is not None else LlamaCppAPI()
         self.embedding = LlamaCppEmbedding(self.api, verbose=verbose)
         self.similarity = LlamaCppSimilarity()
-        self.logger = get_default_logger(
+        self.logger = get_logger(
             name=self.__class__.__name__,
             level=logging.DEBUG if verbose else logging.INFO,
         )
@@ -415,7 +418,7 @@ class LlamaCppDatabase:
         if normalize_scores:
             self.similarity.normalize_mapping(results)
 
-        top_results = self.similarity.top_n_mapping(results, top_n)
+        top_results = self.similarity.top_n_mapping(results, metric, n=top_n)
         self.logger.debug(f"Found {len(top_results)} relevant chunks in the database.")
         return top_results
 
@@ -429,13 +432,13 @@ class LlamaCppDatabase:
         """Search for the top-N most similar embeddings in the database to a given query."""
         # Perform the search
         results = self.search_embeddings(query_embeddings, metric, normalize_scores)
-        sorted_results = self.similarity.sort_mapping(results)
+        sorted_results = self.similarity.sort_mapping(results, metric)
 
         # Rerank results (modifies in place)
         self.similarity.rerank_mapping(sorted_results, query_embeddings, metric)
 
         # Retrieve the top-N results
-        top_results = self.similarity.top_n_mapping(sorted_results, n=top_n)
+        top_results = self.similarity.top_n_mapping(sorted_results, metric, n=top_n)
         self.logger.debug(f"Top {top_n} results: {top_results}")
         return top_results
 
