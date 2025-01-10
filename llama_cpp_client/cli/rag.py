@@ -19,7 +19,7 @@ from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown, Panel
 
-from llama_cpp_client.common.logger import get_default_logger
+from llama_cpp_client.common.logger import get_logger
 from llama_cpp_client.llama.api import LlamaCppAPI
 from llama_cpp_client.llama.embedding import (
     LlamaCppDatabase,
