@@ -26,16 +26,11 @@ import requests
 logging.basicConfig(level=logging.INFO)
 
 
-def normalize(x: np.ndarray) -> np.ndarray:
-    """Normalizes a vector to unit length."""
-    magnitude = np.linalg.norm(x)
-    return x / magnitude if magnitude > 0 else np.zeros_like(x)
-
-
-def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+def cosine_similarity(a: np.ndarray, b: np.ndarray, epsilon: float = 1e-6) -> float:
     """Returns the cosine similarity between two vectors."""
-    norm_a = np.linalg.norm(a)
-    norm_b = np.linalg.norm(b)
+    # Allow broadcasting? Setting keepdims to True causes similarity scores to fail on logging.info(). Don't know why right now.
+    norm_a = np.linalg.norm(a, keepdims=False) + epsilon
+    norm_b = np.linalg.norm(b, keepdims=False) + epsilon
     if norm_a == 0 or norm_b == 0:
         return 0.0  # Avoid division by zero
     return np.dot(a, b) / (norm_a * norm_b)
@@ -45,7 +40,8 @@ def softmax_with_metadata(scores: list[dict]) -> list[dict]:
     """Applies softmax to scores and retains metadata."""
     raw_scores = np.array([entry["score"] for entry in scores])
     exp_scores = np.exp(raw_scores - np.max(raw_scores))
-    probabilities = exp_scores / exp_scores.sum()
+    # Allow broadcasting
+    probabilities = exp_scores / exp_scores.sum(keepdims=True)
 
     # Add probabilities back to the metadata
     for i, entry in enumerate(scores):
@@ -114,10 +110,18 @@ def main():
     # Compare each query to all synthetic documents
     for i, query_embed in enumerate(query_embeddings):
         scores = []
+        logging.info(
+            f"Query Embedding {i + 1}: min={query_embed.min()}, max={query_embed.max()}, mean={query_embed.mean()}"
+        )
+
         for j, doc_embed in enumerate(doc_embeddings):
-            norm_query = normalize(query_embed.flatten())
-            norm_doc = normalize(doc_embed.flatten())
-            similarity = cosine_similarity(norm_query, norm_doc)
+            logging.info(
+                f"Doc Embedding {j + 1}: min={doc_embed.min()}, max={doc_embed.max()}, mean={doc_embed.mean()}"
+            )
+            similarity = cosine_similarity(query_embed.flatten(), doc_embed.flatten())
+            logging.info(
+                f"Query {i + 1} -> Document {j + 1}: Similarity = {similarity:.4f}"
+            )
             scores.append(
                 {
                     "query": queries[i],
