@@ -166,15 +166,15 @@ def main():
                         "score": similarity,
                     }
                 )
-        # Log the top match for this query
-        scores.sort(key=lambda x: x["score"], reverse=True)  # Sort by score
+            # Log the top match for this query
+            scores.sort(key=lambda x: x["score"], reverse=True)  # Sort by score
 
-        top_result = scores[0]
-        logging.info(
-            f"Query {i + 1}: {top_result['query']}, "
-            f"Top Match Score: {top_result['score']:.4f}, "
-            f"Document:\n{top_result['document']}"
-        )
+            top_result = scores[0]
+            logging.info(
+                f"Query {i + 1}: {top_result['query']}, "
+                f"Top Match Score: {top_result['score']:.4f}, "
+                f"Document:\n{top_result['document']}"
+            )
 
 
 if __name__ == "__main__":
