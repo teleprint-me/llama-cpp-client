@@ -50,18 +50,18 @@ def softmax_with_metadata(scores: list[dict]) -> list[dict]:
 
 
 def generate_synthetic_documents() -> list[str]:
-    """Generates synthetic documents for testing."""
+    """Generates simplified synthetic documents for testing."""
     related_documents = [
-        "A typical example of a greeting in many programming languages is a string that simply states 'Hello, world!'",
-        "The quick brown fox, also known as the 'universal printer,' is a well-known pangram used to test keyboards and typing skills.",
-        "In Lewis Carroll's classic tale, Alice's fall down the rabbit hole marks the beginning of a fantastical adventure in Wonderland.",
-        "This string is used as a placeholder or demonstration input in machine learning models, particularly those involving natural language processing and text embeddings.",
+        "Hello, world! A simple greeting.",
+        "A quick brown fox jumps over a lazy dog.",
+        "Alice falls into a rabbit hole.",
+        "This is a test example.",
     ]
     unrelated_documents = [
-        "Completely unrelated text about an entirely different topic.",
-        "This is another random sentence that has no connection to the queries.",
-        "A technical explanation of cosine similarity and embeddings.",
-        "A list of items: apple, orange, banana, and grape.",
+        "Unrelated text about a different topic.",
+        "Another random sentence unrelated to the queries.",
+        "Technical details about embeddings and their use.",
+        "A list of fruits: apple, banana, orange.",
     ]
     docs = related_documents + unrelated_documents
     random.shuffle(docs)
