@@ -27,19 +27,18 @@ class MistyEmbeddingModel(nn.Module):
         self.llama_api = llama_api
         self.vocab_size = llama_api.get_vocab_size()
         self.embedding_dim = llama_api.get_embed_size()
-        self.context_size = llama_api.get_context_size()
 
         # Learnable embedding layer over the Llama embeddings
         self.embeddings = nn.Embedding(self.vocab_size, self.embedding_dim)
 
-        # Add intermediate dense layers
+        # Intermediate dense layers
         self.linear1 = nn.Linear(self.embedding_dim, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim, hidden_dim)
 
         # Final projection layer to map to the desired output embedding size
         self.projection = nn.Linear(hidden_dim, self.embedding_dim)
 
-        # Add dropout and activations
+        # Regularization and activations
         self.dropout = nn.Dropout(dropout_rate)
         self.activation = nn.ReLU()
 
@@ -69,14 +68,20 @@ class MistyEmbeddingModel(nn.Module):
             if not llama_embeddings:
                 raise ValueError(f"Malformed response for inputs: {inputs}")
 
-            # Create a torch tensor
-            embeddings = torch.tensor(llama_embeddings, dtype=torch.float32)
+            # Create a torch tensor and remove the extra dimension
+            torch_embeddings = torch.tensor(
+                llama_embeddings, dtype=torch.float32
+            ).squeeze(1)
 
-        # Pass through learnable embedding layer
-        embeddings = self.embeddings(torch.arange(len(llama_embeddings)))
+        # Generate learnable embeddings for the batch
+        batch_size = torch_embeddings.size(0)
+        learned_embeddings = self.embeddings(torch.arange(batch_size, dtype=torch.long))
+
+        # Combine Llama embeddings with learnable embeddings
+        combined_embeddings = torch_embeddings + learned_embeddings
 
         # Apply intermediate layers
-        hidden = self.dropout(self.activation(self.linear1(embeddings)))
+        hidden = self.dropout(self.activation(self.linear1(combined_embeddings)))
         hidden = self.dropout(self.activation(self.linear2(hidden)))
 
         # Final projection
@@ -102,17 +107,26 @@ class MistyEmbeddingModel(nn.Module):
     #         optimizer.step()
 
     def compute_similarity(
-        self, query: torch.Tensor, documents: torch.Tensor
+        self, queries: torch.Tensor, documents: torch.Tensor
     ) -> torch.Tensor:
         """
         Compute cosine similarity between query and document embeddings.
         Args:
-            query (torch.Tensor): Query embedding of shape (batch_size, embedding_dim).
-            documents (torch.Tensor): Document embedding of shape (batch_size, embedding_dim).
+            queries (torch.Tensor): Query embeddings of shape (num_queries, embedding_dim).
+            documents (torch.Tensor): Document embeddings of shape (num_documents, embedding_dim).
         Returns:
-            torch.Tensor: Similarity scores of shape (batch_size, 1).
+            torch.Tensor: Pairwise similarity scores of shape (num_queries, num_documents).
         """
-        return F.cosine_similarity(query, documents, eps=1e-8)
+        # Ensure tensors are 2D by removing extra dimensions
+        if queries.ndim != 2 or documents.ndim != 2:
+            raise ValueError("Both queries and documents must be 2D tensors.")
+
+        # Normalize embeddings for cosine similarity
+        queries = F.normalize(queries, p=2, dim=1)  # (num_queries, embedding_dim)
+        documents = F.normalize(documents, p=2, dim=1)  # (num_documents, embedding_dim)
+
+        # Compute pairwise cosine similarity using matrix multiplication
+        return torch.mm(queries, documents.mT)  # Use .mT for proper matrix transpose
 
 
 # Example Usage:
@@ -124,16 +138,38 @@ if __name__ == "__main__":
     misty = MistyEmbeddingModel(llama_api=llama_api)
 
     # Example query and documents
-    query = ["Find information on quantum physics."]
-    documents = [
-        "Quantum mechanics explains the behavior of matter and energy.",
-        "Machine learning is a subset of artificial intelligence.",
+    queries = [
+        "Hello, world!",
+        "The quick brown fox jumps over the lazy dog.",
+        "Alice went down the rabbit hole.",
+        "This is a test input for embeddings.",
     ]
+    related_documents = [
+        "Hello, world! A simple greeting.",
+        "A quick brown fox jumps over a lazy dog.",
+        "Alice falls into a rabbit hole.",
+        "This is a test example.",
+    ]
+    unrelated_documents = [
+        "Unrelated text about a different topic.",
+        "Another random sentence unrelated to the queries.",
+        "Technical details about embeddings and their use.",
+        "A list of fruits: apple, banana, orange.",
+    ]
+    documents = related_documents + unrelated_documents
 
     # Generate embeddings
-    query_embedding = misty.forward(query)
+    query_embedding = misty.forward(queries)
     documents_embedding = misty.forward(documents)
 
     # Compute similarities
     similarities = misty.compute_similarity(query_embedding, documents_embedding)
-    print(similarities)
+
+    # Display results
+    for i, query in enumerate(queries):
+        print(f"Query {i + 1}: {query}")
+        sorted_indices = similarities[i].argsort(descending=True)
+        for rank, idx in enumerate(sorted_indices[:3]):  # Top 3 matches
+            print(
+                f"  Rank {rank + 1}: Document {idx + 1} - Similarity: {similarities[i, idx]:.4f}"
+            )
