@@ -83,22 +83,23 @@ def parse_response(response: str) -> dict:
         dict: Parsed entry with query, related, unrelated, and scores.
     """
     lines = response.split("\n")
-    query = lines[0].replace("Query:", "").strip()
-    related = [
-        line.replace("- Related:", "").strip() for line in lines if "Related" in line
-    ]
-    unrelated = [
-        line.replace("- Unrelated:", "").strip()
-        for line in lines
-        if "Unrelated" in line
-    ]
-    score = [0.9 for _ in related]  # Placeholder: Adjust scoring logic if needed
-    return {
-        "query": query,
-        "related_documents": related,
-        "unrelated_documents": unrelated,
-        "score": score,
-    }
+    block_in = False
+    block_start = "```json"
+    block_end = "```"
+    block = "[\n"
+
+    for line in lines:
+        if line == block_start:
+            block_in = True
+            continue
+        if line == block_end:
+            block_in = False
+            block += ",\n"
+            continue
+        if block_in:
+            block += line
+    block += "\n]"
+    return json.loads(block)
 
 
 def main():
