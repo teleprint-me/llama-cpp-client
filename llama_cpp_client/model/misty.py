@@ -90,22 +90,6 @@ class MistyEmbeddingModel(nn.Module):
         # Normalize the embeddings
         return F.normalize(output_embeddings, p=2, dim=1)
 
-    # def backward(self, grad_output: torch.Tensor) -> None:
-    #     """
-    #     Backward pass to compute gradients.
-    #     Args:
-    #         grad_output (torch.Tensor): Gradient of the loss with respect to the output.
-    #     """
-    #     optimizer = torch.optim.Adam(self.projection.parameters(), lr=0.001)
-
-    #     for epoch in range(num_epochs):
-    #         optimizer.zero_grad()
-    #         query_embedding = misty.forward(queries)
-    #         document_embedding = misty.forward(documents)
-    #         loss = loss_fn(query_embedding, document_embedding, labels)
-    #         loss.backward()
-    #         optimizer.step()
-
     def compute_similarity(
         self, queries: torch.Tensor, documents: torch.Tensor
     ) -> torch.Tensor:
@@ -127,6 +111,74 @@ class MistyEmbeddingModel(nn.Module):
 
         # Compute pairwise cosine similarity using matrix multiplication
         return torch.mm(queries, documents.mT)  # Use .mT for proper matrix transpose
+
+
+# Training Loop
+def train_model(
+    model: nn.Module,
+    queries: list[str],
+    related_documents: list[str],
+    unrelated_documents: list[str],
+    epochs: int = 10,
+    lr: float = 0.001,
+) -> None:
+    """
+    Train the MistyEmbeddingModel using a simple synthetic dataset.
+
+    Args:
+        model (MistyEmbeddingModel): The embedding model to train.
+        queries (list[str]): List of queries.
+        related_documents (list[str]): List of documents related to the queries.
+        unrelated_documents (list[str]): List of unrelated documents.
+        epochs (int): Number of epochs to train.
+        lr (float): Learning rate.
+
+    Returns:
+        None
+    """
+    # Combine related and unrelated documents
+    documents = related_documents + unrelated_documents
+
+    # Create labels: +1 for related, -1 for unrelated
+    labels = torch.cat(
+        [torch.ones(len(related_documents)), -torch.ones(len(unrelated_documents))]
+    )
+
+    # Optimizer and loss function
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    loss_fn = nn.CosineEmbeddingLoss()
+
+    for epoch in range(epochs):
+        model.train()
+        optimizer.zero_grad()
+
+        # Generate embeddings
+        query_embeddings = model.forward(queries)  # (len(queries), embedding_dim)
+        document_embeddings = model.forward(
+            documents
+        )  # (len(documents), embedding_dim)
+
+        # Compute loss directly on embeddings
+        repeated_labels = labels.repeat(len(queries))  # Repeat labels for each query
+        expanded_query_embeddings = query_embeddings.unsqueeze(1).expand(
+            -1, len(documents), -1
+        )
+        expanded_document_embeddings = document_embeddings.unsqueeze(0).expand(
+            len(queries), -1, -1
+        )
+
+        loss = loss_fn(
+            expanded_query_embeddings.reshape(-1, model.embedding_dim),
+            expanded_document_embeddings.reshape(-1, model.embedding_dim),
+            repeated_labels,
+        )
+
+        # Backpropagation
+        loss.backward()
+        optimizer.step()
+
+        # Logging
+        print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item():.4f}")
 
 
 # Example Usage:
@@ -156,6 +208,17 @@ if __name__ == "__main__":
         "Technical details about embeddings and their use.",
         "A list of fruits: apple, banana, orange.",
     ]
+
+    # Train the model
+    train_model(
+        misty,
+        queries,
+        related_documents,
+        unrelated_documents,
+        epochs=10,
+        lr=0.001,
+    )
+
     documents = related_documents + unrelated_documents
 
     # Generate embeddings
