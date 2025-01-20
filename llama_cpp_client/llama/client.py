@@ -157,7 +157,7 @@ class LlamaCppClient:
             self.history.append({"role": "assistant", "content": completion})
             self.history.save()
             token_count = self.get_token_count()
-            print(f"Consuming {token_count} tokens from chat.\n")
+            print(f"Consuming {token_count} tokens.\n")
         except KeyboardInterrupt:
             if self.history.completions:
                 completion = self.history.pop()
