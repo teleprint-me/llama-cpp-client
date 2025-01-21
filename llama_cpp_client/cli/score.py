@@ -1,6 +1,7 @@
 """
 Script: llama_cpp_client.cli.score
 Description:
+Improved script for scoring semantic relationships using embeddings from a transformer model.
 """
 
 import argparse
@@ -20,7 +21,6 @@ def load_json(file_path: str) -> list[dict[str, any]]:
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray, epsilon: float = 1e-6) -> float:
     """Returns the cosine similarity between two vectors."""
-    # Allow broadcasting? Setting keepdims to True causes similarity scores to fail on logging.info(). Don't know why right now.
     norm_a = np.linalg.norm(a) + epsilon
     norm_b = np.linalg.norm(b) + epsilon
     if norm_a == 0 or norm_b == 0:
@@ -28,14 +28,16 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray, epsilon: float = 1e-6) -> fl
     return np.dot(a, b) / (norm_a * norm_b)
 
 
-def softmax(scores: np.ndarray) -> np.ndarray:
-    """Applies softmax to scores."""
-    exp_scores = np.exp(scores - np.max(scores))
+def softmax(scores: np.ndarray, temperature: float = 1.0) -> np.ndarray:
+    """Applies softmax to scores with optional temperature scaling."""
+    scaled_scores = scores / temperature
+    exp_scores = np.exp(scaled_scores - np.max(scaled_scores))
     return exp_scores / exp_scores.sum()
 
 
 # NOTE: Prompts can be batched, but this simplifies the overall mechanics.
-def get_embeddings(llama_api: LlamaCppAPI, prompt: str) -> list[list[float]]:
+def get_embeddings(llama_api: LlamaCppAPI, prompt: str) -> np.ndarray:
+    """Fetch embeddings for a given prompt using the LlamaCppAPI."""
     response = llama_api.embedding(prompt)
     if "error" in response:
         raise ValueError(response["message"])
@@ -46,11 +48,15 @@ def get_embeddings(llama_api: LlamaCppAPI, prompt: str) -> list[list[float]]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Score semantic relationships using transformer embeddings."
+    )
     parser.add_argument(
         "-i",
         "--input",
-        help="JSON file containing semantic training data.",
+        required=True,
+        help="Path to JSON file containing semantic training data.",
     )
     return parser.parse_args()
 
@@ -60,29 +66,30 @@ def main():
     llama_api = LlamaCppAPI()
 
     dataset: list[dict[str, any]] = load_json(args.input)
+
     for entry in dataset:
         query = entry["query"]
         query_embed = get_embeddings(llama_api, query)
         print(f"Query: {query}")
-        for related, unrelated in zip(entry["related"], entry["unrelated"]):
-            # related documents
+
+        for related in entry.get("related", []):
             rel_doc = related["document"]
             rel_score = related["score"]
             rel_embed = get_embeddings(llama_api, rel_doc)
             rel_act_score = cosine_similarity(query_embed, rel_embed)
             rel_probs = softmax(np.array([rel_score, rel_act_score], dtype=np.float32))
-            rel_probs[::-1].sort()
             print(
-                "related document:",
+                "Related Document:",
                 f"{rel_doc},",
-                "related score:",
+                "Given Score:",
                 f"{rel_score},",
-                "actual score:",
+                "Actual Score:",
                 f"{rel_act_score:.2f},",
-                "probabilities:",
-                f"{rel_probs},",
+                "Probabilities:",
+                f"{rel_probs}",
             )
-            # unrelated documents
+
+        for unrelated in entry.get("unrelated", []):
             unrel_doc = unrelated["document"]
             unrel_score = unrelated["score"]
             unrel_embed = get_embeddings(llama_api, unrel_doc)
@@ -90,25 +97,36 @@ def main():
             unrel_probs = softmax(
                 np.array([unrel_score, unrel_act_score], dtype=np.float32)
             )
-            unrel_probs[::-1].sort()
             print(
                 "Unrelated Document:",
                 f"{unrel_doc},",
-                "Unrelated score:",
+                "Given Score:",
                 f"{unrel_score},",
-                "actual score:",
+                "Actual Score:",
                 f"{unrel_act_score:.2f},",
-                "probabilities:",
-                f"{unrel_probs},",
+                "Probabilities:",
+                f"{unrel_probs}",
             )
-            probs = softmax(
-                np.array(
-                    [rel_score, rel_act_score, unrel_score, unrel_act_score],
-                    dtype=np.float32,
+
+        all_scores = (
+            [related["score"] for related in entry.get("related", [])]
+            + [
+                cosine_similarity(
+                    query_embed, get_embeddings(llama_api, related["document"])
                 )
-            )
-            probs[::-1].sort()
-            print(f"Overall Probabilities: {probs}")
+                for related in entry.get("related", [])
+            ]
+            + [unrelated["score"] for unrelated in entry.get("unrelated", [])]
+            + [
+                cosine_similarity(
+                    query_embed, get_embeddings(llama_api, unrelated["document"])
+                )
+                for unrelated in entry.get("unrelated", [])
+            ]
+        )
+
+        overall_probs = softmax(np.array(all_scores, dtype=np.float32))
+        print(f"Overall Probabilities: {overall_probs}")
 
 
 if __name__ == "__main__":
