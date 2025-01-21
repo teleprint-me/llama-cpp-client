@@ -79,10 +79,11 @@ class LlamaCppAuto:
         ext = file_path.split(".")[-1]
         if ext == "json":
             self.save_json(data, file_path)
-        elif ext == "txt":
-            self.save_text(data, file_path)
+            print(f"Save {file_path} as json.")
+        # if ext == special_format: ...
         else:
-            print(f"Unsupported file format: {ext}")
+            self.save_text(data, file_path)
+            print(f"Save {file_path} as plaintext.")
 
     def parse_blocks(
         self,
@@ -108,7 +109,7 @@ class LlamaCppAuto:
         current_block = ""
 
         for line in lines:
-            if line.strip().startswith(block_start):
+            if line.strip() == block_start:
                 block_in = True
                 current_block = ""  # Start a new block
                 continue
@@ -134,13 +135,11 @@ def main():
     parser.add_argument("-i", "--input", help="File to read an instruction from.")
     parser.add_argument("-o", "--output", help="File to save model outputs to.")
     parser.add_argument(
-        "-s",
         "--sanitize",
         action="store_true",
         help="Sanitize prompt.",
     )
     parser.add_argument(
-        "-p",
         "--parse",
         action="store_true",
         help="Parse model outputs for dataset generation.",
@@ -154,6 +153,12 @@ def main():
         "--block-end",
         default="```",
         help="The end of a block to parse.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbosity.",
     )
     args = parser.parse_args()
 
@@ -194,8 +199,8 @@ def main():
         )
         if args.output and parsed_entries:
             llama_auto.save(parsed_entries, args.output)
-    else:
-        print("Did not write response to output.")
+    if not args.parse and args.verbose:
+        print("Did not write parsed response to output.")
 
 
 if __name__ == "__main__":
