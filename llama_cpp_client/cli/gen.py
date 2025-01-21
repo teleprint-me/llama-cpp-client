@@ -41,9 +41,11 @@ class LlamaCppAuto:
     def token_count(self, prompt: str) -> int:
         return len(self.llama_api.tokenize(prompt))
 
-    def generate(self, prompt: str, output_file: str = None) -> str:
-        if self.token_count(prompt) > self.max_prompt():
-            raise ValueError(f"Prompt exceeds the token limit: {self.max_prompt()}.")
+    def generate(self, prompt: str, limit: int = 4) -> str:
+        if self.token_count(prompt) > self.max_prompt(limit):
+            raise ValueError(
+                f"Prompt exceeds token limit: {self.token_count(prompt)} > {self.max_prompt()}."
+            )
         try:
             content = ""
             generator = self.llama_api.completion(prompt)
@@ -61,10 +63,10 @@ class LlamaCppAuto:
         # NOTE: Do not save the file here. Do it externally. It will raise an exception otherwise.
         return content
 
-    def save_text(self, content: str, file_path: str) -> None:
-        """Save content to a text file."""
+    def save_text(self, data: str, file_path: str) -> None:
+        """Save data to a text file."""
         with open(file_path, "w") as f:
-            f.write(content)
+            f.write(data)
         print(f"Content saved to {file_path}")
 
     def save_json(self, data: object, file_path: str) -> None:
@@ -73,99 +75,127 @@ class LlamaCppAuto:
             json.dump(data, f, indent=2)
         print(f"JSON saved to {file_path}")
 
+    def save(self, data: object, file_path: str) -> None:
+        ext = file_path.split(".")[-1]
+        if ext == "json":
+            self.save_json(data, file_path)
+        elif ext == "txt":
+            self.save_text(data, file_path)
+        else:
+            print(f"Unsupported file format: {ext}")
 
-def parse_json(response: str) -> list[dict]:
-    """
-    Parse the LLM response into structured dataset entries.
-    Assumes response contains multiple JSON blocks, each delimited by ```json and ```.
+    def parse_blocks(
+        self,
+        response: str,
+        block_start: str = "```",
+        block_end: str = "```",
+    ) -> list[dict]:
+        """
+        Parse the LLM response into structured dataset entries.
+        Assumes response contains multiple code blocks, each delimited by ``` and ```.
 
-    Args:
-        response (str): Generated response from the LLM.
+        Args:
+            response (str): Generated response from the LLM.
 
-    Returns:
-        list[dict]: A list of parsed dataset entries.
-    """
-    lines = response.split("\n")
-    block_in = False
-    block_start = "```json"
-    block_end = "```"
-    blocks = []
-    current_block = ""
+        Returns:
+            list[dict]: A list of parsed dataset entries.
+        """
+        lines = response.split("\n")
+        block_in = False
+        block_start = block_start
+        block_end = block_end
+        blocks = []
+        current_block = ""
 
-    for line in lines:
-        if line.strip() == block_start:
-            block_in = True
-            current_block = ""  # Start a new block
-            continue
-        if line.strip() == block_end:
-            block_in = False
-            try:
-                # Parse the current block as JSON
-                blocks.append(json.loads(current_block))
-            except json.JSONDecodeError as e:
-                print(f"Failed to parse JSON block: {e}")
-            continue
-        if block_in:
-            current_block += line.strip()
+        for line in lines:
+            if line.strip().startswith(block_start):
+                block_in = True
+                current_block = ""  # Start a new block
+                continue
+            if line.strip() == block_end:
+                block_in = False
+                try:
+                    # Parse the current block as JSON
+                    blocks.append(json.loads(current_block))
+                except json.JSONDecodeError as e:
+                    print(f"Failed to parse JSON block: {e}")
+                continue
+            if block_in:
+                current_block += line.strip()
 
-    return blocks
+        return blocks
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Generate content or datasets using LlamaCppAPI."
     )
-    parser.add_argument("-p", "--prompt", help="Prompt text to generate content.")
-    parser.add_argument(
-        "-f", "--prompt-file", help="Path to a file containing the prompt."
-    )
-    parser.add_argument("-o", "--output", help="File to save generated content.")
-    parser.add_argument(
-        "-j",
-        "--parse-json",
-        action="store_true",
-        help="Parse generated entries for dataset generation.",
-    )
+    parser.add_argument("-p", "--prompt", help="Model instruction to generate output.")
+    parser.add_argument("-i", "--input", help="File to read an instruction from.")
+    parser.add_argument("-o", "--output", help="File to save model outputs to.")
     parser.add_argument(
         "-s",
         "--sanitize",
         action="store_true",
         help="Sanitize prompt.",
     )
+    parser.add_argument(
+        "-p",
+        "--parse",
+        action="store_true",
+        help="Parse model outputs for dataset generation.",
+    )
+    parser.add_argument(
+        "--block-start",
+        default="```",
+        help="The start of a block to parse.",
+    )
+    parser.add_argument(
+        "--block-end",
+        default="```",
+        help="The end of a block to parse.",
+    )
     args = parser.parse_args()
+
+    # Load model instructions
+    if args.input:
+        with open(args.input, "r") as f:
+            args.prompt = f.read()
+
+    if not args.prompt:
+        print("Error: Please provide a prompt or a prompt file.")
+        sys.exit(1)
 
     # Initialize LlamaCppAuto
     llama_auto = LlamaCppAuto()
 
-    # Display model info
-    print(f"Model supports up to {llama_auto.max_tokens()} tokens.")
-
-    # Load prompt
-    if args.prompt_file:
-        with open(args.prompt_file, "r") as f:
-            prompt = f.read()
-    elif args.prompt:
-        prompt = args.prompt
-    else:
-        print("Error: Please provide a prompt or a prompt file.")
-        sys.exit(1)
-
     if args.sanitize:
-        prompt = llama_auto.sanitize(prompt)
+        args.prompt = llama_auto.sanitize(args.prompt)
 
-    response = llama_auto.generate(prompt, output_file=args.output)
-    print(f"\nModel produced {llama_auto.token_count(response)} tokens.")
+    # Display model info
+    if args.verbose:
+        print(f"Model supports up to {llama_auto.max_tokens()} tokens.")
+        print(f"Prompt can use {llama_auto.max_prompt()} tokens.")
+        if args.sanitize:
+            print("Sanitized", end=" ")
+        print(f"Prompt: {args.prompt}")
+
+    response = llama_auto.generate(args.prompt)
+
+    if args.verbose:
+        print(f"\nModel produced {llama_auto.token_count(response)} tokens.")
 
     # Generate dataset or single content
-    if args.parse_json:
-        parsed_entries = parse_json(response)
-        if parsed_entries:
-            for entry in parsed_entries:
-                print(f"Parsed Entry: {entry}")
-            if args.output:
-                llama_auto.save_json(parsed_entries, args.output)
-        else:
-            print("No valid entries were parsed from the response.")
+    if args.parse:
+        parsed_entries = llama_auto.parse_blocks(
+            response,
+            args.block_start,
+            args.block_end,
+        )
+        if args.output and parsed_entries:
+            llama_auto.save(parsed_entries, args.output)
+    else:
+        print("Did not write response to output.")
 
 
 if __name__ == "__main__":
