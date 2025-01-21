@@ -19,6 +19,14 @@ def load_json(file_path: str) -> list[dict[str, any]]:
     return data
 
 
+def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
+    """Returns the Euclidean distance between two vectors."""
+    # d(p, q) = sqrt((p_1 - q_1)^2 + (p_2 - q_2)^2)
+    norm_a = a / np.sum(a**2)
+    norm_b = b / np.sum(b**2)
+    return np.linalg.norm(np.sqrt(norm_a + norm_b))
+
+
 def cosine_similarity(a: np.ndarray, b: np.ndarray, epsilon: float = 1e-6) -> float:
     """Returns the cosine similarity between two vectors."""
     norm_a = np.linalg.norm(a) + epsilon
@@ -26,13 +34,6 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray, epsilon: float = 1e-6) -> fl
     if norm_a == 0 or norm_b == 0:
         return 0.0  # Avoid division by zero
     return np.dot(a, b) / (norm_a * norm_b)
-
-
-def softmax(scores: np.ndarray, temperature: float = 1.0) -> np.ndarray:
-    """Applies softmax to scores with optional temperature scaling."""
-    scaled_scores = scores / temperature
-    exp_scores = np.exp(scaled_scores - np.max(scaled_scores))
-    return exp_scores / exp_scores.sum()
 
 
 # NOTE: Prompts can be batched, but this simplifies the overall mechanics.
@@ -45,6 +46,33 @@ def get_embeddings(llama_api: LlamaCppAPI, prompt: str) -> np.ndarray:
     if matrix is None:
         raise ValueError(f"Malformed response for input: {prompt}")
     return np.array(matrix, dtype=np.float32).flatten()
+
+
+def calc_embeddings(
+    llama_api: LlamaCppAPI,
+    query_embed: np.ndarray,
+    entry: dict[str, any],
+    key: str,
+) -> None:
+    for related in entry.get(key, []):
+        document = related["document"]
+        score = related["score"]
+        doc_embed = get_embeddings(llama_api, document)
+        actual_score = cosine_similarity(query_embed, doc_embed)
+        distance = euclidean_distance(query_embed, score)
+        mean_score = (score + actual_score) / 2
+        print(
+            "Related Document:",
+            f"{document},",
+            "Given Score:",
+            f"{score},",
+            "Actual Score:",
+            f"{actual_score:.2f},",
+            "Mean Score:",
+            f"{mean_score:.2f},",
+            "Distance:",
+            f"{distance}",
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -72,61 +100,8 @@ def main():
         query_embed = get_embeddings(llama_api, query)
         print(f"Query: {query}")
 
-        for related in entry.get("related", []):
-            rel_doc = related["document"]
-            rel_score = related["score"]
-            rel_embed = get_embeddings(llama_api, rel_doc)
-            rel_act_score = cosine_similarity(query_embed, rel_embed)
-            rel_probs = softmax(np.array([rel_score, rel_act_score], dtype=np.float32))
-            print(
-                "Related Document:",
-                f"{rel_doc},",
-                "Given Score:",
-                f"{rel_score},",
-                "Actual Score:",
-                f"{rel_act_score:.2f},",
-                "Probabilities:",
-                f"{rel_probs}",
-            )
-
-        for unrelated in entry.get("unrelated", []):
-            unrel_doc = unrelated["document"]
-            unrel_score = unrelated["score"]
-            unrel_embed = get_embeddings(llama_api, unrel_doc)
-            unrel_act_score = cosine_similarity(query_embed, unrel_embed)
-            unrel_probs = softmax(
-                np.array([unrel_score, unrel_act_score], dtype=np.float32)
-            )
-            print(
-                "Unrelated Document:",
-                f"{unrel_doc},",
-                "Given Score:",
-                f"{unrel_score},",
-                "Actual Score:",
-                f"{unrel_act_score:.2f},",
-                "Probabilities:",
-                f"{unrel_probs}",
-            )
-
-        all_scores = (
-            [related["score"] for related in entry.get("related", [])]
-            + [
-                cosine_similarity(
-                    query_embed, get_embeddings(llama_api, related["document"])
-                )
-                for related in entry.get("related", [])
-            ]
-            + [unrelated["score"] for unrelated in entry.get("unrelated", [])]
-            + [
-                cosine_similarity(
-                    query_embed, get_embeddings(llama_api, unrelated["document"])
-                )
-                for unrelated in entry.get("unrelated", [])
-            ]
-        )
-
-        overall_probs = softmax(np.array(all_scores, dtype=np.float32))
-        print(f"Overall Probabilities: {overall_probs}")
+        calc_embeddings(llama_api, query_embed, entry, "related")
+        calc_embeddings(llama_api, query_embed, entry, "unrelated")
 
 
 if __name__ == "__main__":
