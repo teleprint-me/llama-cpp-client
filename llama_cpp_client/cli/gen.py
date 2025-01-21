@@ -13,7 +13,7 @@ from llama_cpp_client.llama.request import LlamaCppRequest
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate content or datasets using LlamaCppAPI."
+        description="Generate content or datasets using LlamaCppAuto."
     )
     parser.add_argument("-p", "--prompt", help="Model instruction to generate output.")
     parser.add_argument("-i", "--input", help="File to read an instruction from.")
