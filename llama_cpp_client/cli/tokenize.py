@@ -39,6 +39,12 @@ def get_arguments() -> argparse.Namespace:
         help="Treat the prompt as a plaintext file",
     )
     parser.add_argument(
+        "-p",
+        "--with-pieces",
+        action="store_true",
+        help="Include token pieces in output.",
+    )
+    parser.add_argument(
         "-s",
         "--special",
         action="store_true",
@@ -48,13 +54,13 @@ def get_arguments() -> argparse.Namespace:
         "-e",
         "--encoded",
         action="store_true",
-        help="Convert text prompt to encoding ids and print to stdout",
+        help="Convert text to encoding ids and print to stdout",
     )
     parser.add_argument(
         "-d",
         "--decoded",
         action="store_true",
-        help="Convert text prompt to encoding ids and print to stdout",
+        help="Convert encoding ids to text and print to stdout",
     )
     parser.add_argument(
         "-l",
@@ -77,20 +83,23 @@ def main():
         path = pathlib.Path(args.prompt)
         with open(path, "r") as file:
             content = file.read()
-        encodings = llama_api.tokenize(content, args.special)
+        encodings = llama_api.tokenize(content, args.special, args.with_pieces)
     else:
-        encodings = llama_api.tokenize(args.prompt, args.special)
+        encodings = llama_api.tokenize(args.prompt, args.special, args.with_pieces)
 
     if args.encoded:
         print(encodings)
 
-    # Detokenize the tokens
-    decodings = llama_api.detokenize(encodings)
-    if args.decoded:
-        print(decodings)
-
     if args.length:
         print(len(encodings))
+
+    if args.decoded:
+        if args.with_pieces:
+            decodings = llama_api.detokenize([v["id"] for v in encodings])
+        else:
+            decodings = llama_api.detokenize(encodings)
+
+        print(decodings)
 
 
 if __name__ == "__main__":
