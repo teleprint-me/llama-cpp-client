@@ -1,7 +1,6 @@
 """
 Script: llama_cpp_client.cli.score
-Description:
-Improved script for scoring semantic relationships using embeddings from a transformer model.
+Description: Score semantic relationships using embeddings from a transformer model.
 """
 
 import argparse
@@ -21,10 +20,7 @@ def load_json(file_path: str) -> list[dict[str, any]]:
 
 def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
     """Returns the Euclidean distance between two vectors."""
-    # d(p, q) = sqrt((p_1 - q_1)^2 + (p_2 - q_2)^2)
-    norm_a = a / np.sum(a**2)
-    norm_b = b / np.sum(b**2)
-    return np.linalg.norm(np.sqrt(norm_a + norm_b))
+    return np.linalg.norm(a - b)
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray, epsilon: float = 1e-6) -> float:
@@ -36,7 +32,6 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray, epsilon: float = 1e-6) -> fl
     return np.dot(a, b) / (norm_a * norm_b)
 
 
-# NOTE: Prompts can be batched, but this simplifies the overall mechanics.
 def get_embeddings(llama_api: LlamaCppAPI, prompt: str) -> np.ndarray:
     """Fetch embeddings for a given prompt using the LlamaCppAPI."""
     response = llama_api.embedding(prompt)
@@ -54,24 +49,15 @@ def calc_embeddings(
     entry: dict[str, any],
     key: str,
 ) -> None:
-    for related in entry.get(key, []):
-        document = related["document"]
-        score = related["score"]
+    for item in entry.get(key, []):
+        document = item["document"]
+        score = item["score"]
         doc_embed = get_embeddings(llama_api, document)
         actual_score = cosine_similarity(query_embed, doc_embed)
-        distance = euclidean_distance(query_embed, score)
+        distance = euclidean_distance(query_embed, doc_embed)
         mean_score = (score + actual_score) / 2
         print(
-            "Related Document:",
-            f"{document},",
-            "Given Score:",
-            f"{score},",
-            "Actual Score:",
-            f"{actual_score:.2f},",
-            "Mean Score:",
-            f"{mean_score:.2f},",
-            "Distance:",
-            f"{distance}",
+            f"Document: {document}, Given Score: {score:.2f}, Actual Score: {actual_score:.2f}, Mean Score: {mean_score:.2f}, Distance: {distance:.2f}"
         )
 
 
@@ -98,9 +84,12 @@ def main():
     for entry in dataset:
         query = entry["query"]
         query_embed = get_embeddings(llama_api, query)
-        print(f"Query: {query}")
+        print(f"\nQuery: {query}")
 
+        print("\nRelated Documents:")
         calc_embeddings(llama_api, query_embed, entry, "related")
+
+        print("\nUnrelated Documents:")
         calc_embeddings(llama_api, query_embed, entry, "unrelated")
 
 
