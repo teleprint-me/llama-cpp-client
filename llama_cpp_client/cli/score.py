@@ -48,16 +48,34 @@ def calc_embeddings(
     query_embed: np.ndarray,
     entry: dict[str, any],
     key: str,
+    weight_synthetic: float = 0.7,
+    weight_actual: float = 0.3,
+    penalty_factor: float = 0.1,
 ) -> None:
     for item in entry.get(key, []):
         document = item["document"]
-        score = item["score"]
+        synthetic_score = item["score"]
         doc_embed = get_embeddings(llama_api, document)
+
+        # Calculate metrics
         actual_score = cosine_similarity(query_embed, doc_embed)
         distance = euclidean_distance(query_embed, doc_embed)
-        mean_score = (score + actual_score) / 2
+
+        # Weighted score
+        weighted_score = (
+            weight_synthetic * synthetic_score + weight_actual * actual_score
+        )
+
+        # Apply penalty for distance
+        adjusted_score = weighted_score - penalty_factor * distance
+
         print(
-            f"Document: {document}, Given Score: {score:.2f}, Actual Score: {actual_score:.2f}, Mean Score: {mean_score:.2f}, Distance: {distance:.2f}"
+            f"Document: {document}, "
+            f"Synthetic Score: {synthetic_score:.2f}, "
+            f"Actual Score: {actual_score:.2f}, "
+            f"Weighted Score: {weighted_score:.2f}, "
+            f"Adjusted Score: {adjusted_score:.2f}, "
+            f"Distance: {distance:.2f}"
         )
 
 
