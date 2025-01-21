@@ -1,133 +1,17 @@
 """
 Script: llama_cpp_client.cli.gen
-Description: CLI tool for generating content or datasets using LlamaCppAPI.
+Description: CLI tool for generating content or datasets using LlamaCppAuto.
 """
 
 import argparse
-import html
-import json
 import sys
 
 from llama_cpp_client.llama.api import LlamaCppAPI
+from llama_cpp_client.llama.auto import LlamaCppAuto
+from llama_cpp_client.llama.request import LlamaCppRequest
 
 
-class LlamaCppAuto:
-    def __init__(self, file_path: str = None, llama_api: LlamaCppAPI = None):
-        self.file_path = file_path
-        self.llama_api = llama_api or LlamaCppAPI()
-
-    def sanitize(self, prompt: str) -> str:
-        """Escape special symbols in a given text."""
-        sanitized_text = html.escape(prompt)
-        body = []
-
-        for symbol in sanitized_text:
-            symbol = {
-                "[": "\\[",  # &lbrack;
-                "]": "\\]",  # &rbrack;
-            }.get(symbol, symbol)
-            body.append(symbol)
-
-        return "".join(body)
-
-    def max_tokens(self) -> int:
-        return self.llama_api.get_context_size()
-
-    def max_prompt(self, limit: int = 4) -> int:
-        # NOTE: Prompt should not consume more than 25% of the context window.
-        limit = limit if limit > 0 else 4
-        return self.max_tokens() / limit
-
-    def token_count(self, prompt: str) -> int:
-        return len(self.llama_api.tokenize(prompt))
-
-    def generate(self, prompt: str, limit: int = 4) -> str:
-        if self.token_count(prompt) > self.max_prompt(limit):
-            raise ValueError(
-                f"Prompt exceeds token limit: {self.token_count(prompt)} > {self.max_prompt()}."
-            )
-        try:
-            content = ""
-            generator = self.llama_api.completion(prompt)
-            for response in generator:
-                if "content" in response:
-                    token = response["content"]
-                    content += token
-                    print(token, end="")
-                    sys.stdout.flush()
-            print()  # Add a new line after streaming output
-        except KeyboardInterrupt:
-            print("\nGeneration interrupted by user.")
-        except Exception as e:
-            print(f"An error occurred during generation: {e}")
-        # NOTE: Do not save the file here. Do it externally. It will raise an exception otherwise.
-        return content
-
-    def save_text(self, data: str, file_path: str) -> None:
-        """Save data to a text file."""
-        with open(file_path, "w") as f:
-            f.write(data)
-        print(f"Content saved to {file_path}")
-
-    def save_json(self, data: object, file_path: str) -> None:
-        """Dump data to a JSON file."""
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=2)
-        print(f"JSON saved to {file_path}")
-
-    def save(self, data: object, file_path: str) -> None:
-        ext = file_path.split(".")[-1]
-        if ext == "json":
-            self.save_json(data, file_path)
-            print(f"Save {file_path} as json.")
-        # if ext == special_format: ...
-        else:
-            self.save_text(data, file_path)
-            print(f"Save {file_path} as plaintext.")
-
-    def parse_blocks(
-        self,
-        response: str,
-        block_start: str = "```",
-        block_end: str = "```",
-    ) -> list[dict]:
-        """
-        Parse the LLM response into structured dataset entries.
-        Assumes response contains multiple code blocks, each delimited by ``` and ```.
-
-        Args:
-            response (str): Generated response from the LLM.
-
-        Returns:
-            list[dict]: A list of parsed dataset entries.
-        """
-        lines = response.split("\n")
-        block_in = False
-        block_start = block_start
-        block_end = block_end
-        blocks = []
-        current_block = ""
-
-        for line in lines:
-            if line.strip() == block_start:
-                block_in = True
-                current_block = ""  # Start a new block
-                continue
-            if line.strip() == block_end:
-                block_in = False
-                try:
-                    # Parse the current block as JSON
-                    blocks.append(json.loads(current_block))
-                except json.JSONDecodeError as e:
-                    print(f"Failed to parse JSON block: {e}")
-                continue
-            if block_in:
-                current_block += line.strip()
-
-        return blocks
-
-
-def main():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate content or datasets using LlamaCppAPI."
     )
@@ -137,30 +21,99 @@ def main():
     parser.add_argument(
         "--sanitize",
         action="store_true",
-        help="Sanitize prompt.",
+        help="Sanitize prompt. (Default: False)",
     )
     parser.add_argument(
         "--parse",
         action="store_true",
-        help="Parse model outputs for dataset generation.",
+        help="Parse model outputs for dataset generation. (Default: False)",
     )
     parser.add_argument(
         "--block-start",
         default="```",
-        help="The start of a block to parse.",
+        help="The start of a block to parse. (Default: ```)",
     )
     parser.add_argument(
         "--block-end",
         default="```",
-        help="The end of a block to parse.",
+        help="The end of a block to parse. (Default: ```)",
+    )
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        default="http://127.0.0.1",
+        help="The servers url (default: http://127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=str,
+        default="8080",
+        help="The servers port (default: 8080)",
+    )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=50,
+        help="Limit output tokens to top-k most likely (default: 50)",
+    )
+    parser.add_argument(
+        "--top-p",
+        type=float,
+        default=0.9,
+        help="Only consider tokens with prob greater than top-p (default: 0.9)",
+    )
+    parser.add_argument(
+        "--min-p",
+        type=float,
+        default=0.1,
+        help="Minimum token probability (default: 0.1)",
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=0.7,
+        help="Temperature for output randomness (default: 0.7)",
+    )
+    parser.add_argument(
+        "--repeat-penalty",
+        type=float,
+        default=1.0,
+        help="Penalty for repeating tokens (default: 1.0, no effect)",
+    )
+    parser.add_argument(
+        "--n-predict",
+        type=int,
+        default=-1,
+        help="The number of tokens to predict (default: -1, inf)",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=1,
+        help="Initial value for random number generator (default: -1)",
+    )
+    parser.add_argument(
+        "--cache-prompt",
+        action="store_true",
+        help="Reuse cached prompts to speed up processing (default: False)",
+    )
+    parser.add_argument(
+        "--stop",
+        type=str,
+        default="",
+        help="List of stop tokens to ignore (default: empty string; use comma delimited list, no spaces).",
     )
     parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
-        help="Enable verbosity.",
+        help="Enable verbosity. (Default: False)",
     )
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
 
     # Load model instructions
     if args.input:
@@ -171,8 +124,26 @@ def main():
         print("Error: Please provide a prompt or a prompt file.")
         sys.exit(1)
 
-    # Initialize LlamaCppAuto
-    llama_auto = LlamaCppAuto()
+    # Initialize core requests
+    llama_request = LlamaCppRequest(base_url=args.base_url, port=args.port)
+
+    # Initialize core REST API
+    stop = [token for token in args.stop.split(",") if token]
+    llama_api = LlamaCppAPI(
+        request=llama_request,
+        top_k=args.top_k,
+        top_p=args.top_p,
+        min_p=args.min_p,
+        temperature=args.temperature,
+        repeat_penalty=args.repeat_penalty,
+        n_predict=args.n_predict,
+        seed=args.seed,
+        cache_prompt=args.cache_prompt,
+        stop=stop,
+    )
+
+    # Initialize autonomous behavior
+    llama_auto = LlamaCppAuto(llama_api=llama_api)
 
     if args.sanitize:
         args.prompt = llama_auto.sanitize(args.prompt)
