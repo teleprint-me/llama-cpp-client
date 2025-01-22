@@ -40,7 +40,7 @@ class LlamaCppRequest:
         """
         self.base_url = f"{base_url}:{port}"
         self.headers = headers or {"Content-Type": "application/json"}
-        log_level = logging.INFO if verbose else logging.DEBUG
+        log_level = logging.DEBUG if verbose else logging.INFO
         self.logger = get_logger(self.__class__.__name__, level=log_level)
         self.logger.debug("Initialized LlamaCppRequest instance.")
 

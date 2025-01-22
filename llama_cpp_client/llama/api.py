@@ -37,7 +37,7 @@ class LlamaCppAPI:
         # NOTE: verbose is added to data which increases server verbosity.
         # Popping this is optional, but I'm leaving it for now.
         verbose = kwargs.get("verbose", False)
-        log_level = logging.INFO if verbose else logging.DEBUG
+        log_level = logging.DEBUG if verbose else logging.INFO
         self.request = request or LlamaCppRequest(log_level=log_level)
 
         # Set model hyperparameters
