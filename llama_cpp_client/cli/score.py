@@ -15,7 +15,25 @@ def load_json(file_path: str) -> list[dict[str, any]]:
     """Load data from a JSON file."""
     with open(file_path, "r") as f:
         data = json.load(f)
+    print(f"JSON loaded from {file_path}")
     return data
+
+
+def save_json(data: object, file_path: str) -> None:
+    """Dump data to a JSON file with support for NumPy types."""
+
+    def default_serializer(obj):
+        if isinstance(obj, (np.float32, np.float64)):
+            return float(obj)  # Convert NumPy floats to Python floats
+        if isinstance(obj, (np.int32, np.int64)):
+            return int(obj)  # Convert NumPy integers to Python integers
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()  # Convert NumPy arrays to lists
+        raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+    with open(file_path, "w") as f:
+        json.dump(data, f, indent=2, default=default_serializer)
+    print(f"JSON saved to {file_path}")
 
 
 def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
@@ -131,7 +149,13 @@ def parse_args() -> argparse.Namespace:
         "-i",
         "--input",
         required=True,
-        help="Path to JSON file containing semantic training data.",
+        help="Path to JSON file loading synthetic semantic training data.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="Path to JSON file saving synthetic semantic training data.",
     )
     parser.add_argument(
         "--weight_synthetic",
@@ -182,6 +206,9 @@ def main():
             max_distance=args.max_distance,
         )
         print_embeddings(entry, "unrelated")
+
+    if args.output:
+        save_json(dataset, args.output)
 
 
 if __name__ == "__main__":
