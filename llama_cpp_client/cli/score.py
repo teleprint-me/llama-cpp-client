@@ -32,6 +32,11 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray, epsilon: float = 1e-6) -> fl
     return np.dot(a, b) / (norm_a * norm_b)
 
 
+def normalize(value: float, min_value: float, max_value: float) -> float:
+    """Normalize a value to the range [0, 1]."""
+    return (value - min_value) / (max_value - min_value)
+
+
 def get_embeddings(llama_api: LlamaCppAPI, prompt: str) -> np.ndarray:
     """Fetch embeddings for a given prompt using the LlamaCppAPI."""
     response = llama_api.embedding(prompt)
@@ -45,13 +50,16 @@ def get_embeddings(llama_api: LlamaCppAPI, prompt: str) -> np.ndarray:
 
 def calc_embeddings(
     llama_api: LlamaCppAPI,
-    query_embed: np.ndarray,
     entry: dict[str, any],
     key: str,
     weight_synthetic: float = 0.7,
     weight_actual: float = 0.3,
     penalty_factor: float = 0.1,
+    max_distance: float = 1.0,
 ) -> None:
+    results = []
+    query = entry["query"]
+    query_embed = get_embeddings(llama_api, query)
     for item in entry.get(key, []):
         document = item["document"]
         synthetic_score = item["score"]
@@ -61,21 +69,56 @@ def calc_embeddings(
         actual_score = cosine_similarity(query_embed, doc_embed)
         distance = euclidean_distance(query_embed, doc_embed)
 
-        # Weighted score
+        # Normalize distance
+        normalized_distance = normalize(distance, 0, max_distance)
+
+        # Weighted score with dynamic adjustment
+        dynamic_weight_synthetic = 1 - normalized_distance
+        dynamic_weight_actual = normalized_distance
         weighted_score = (
-            weight_synthetic * synthetic_score + weight_actual * actual_score
+            dynamic_weight_synthetic * synthetic_score
+            + dynamic_weight_actual * actual_score
         )
 
         # Apply penalty for distance
-        adjusted_score = weighted_score - penalty_factor * distance
+        adjusted_score = weighted_score - penalty_factor * normalized_distance
 
+        # Classify results
+        if adjusted_score > 0.8:
+            classification = "Highly Related"
+        elif adjusted_score > 0.5:
+            classification = "Partially Related"
+        else:
+            classification = "Unrelated"
+
+        results.append(
+            {
+                "document": document,
+                "synthetic_score": synthetic_score,
+                "actual_score": actual_score,
+                "weighted_score": weighted_score,
+                "adjusted_score": adjusted_score,
+                "distance": distance,
+                "normalized_distance": normalized_distance,
+                "classification": classification,
+            }
+        )
+    entry[key] = results
+
+
+def print_embeddings(entry: dict[str, any], key: str) -> None:
+    print(f"\n{key.capitalize()} Documents:")
+    print(f"\nQuery: {entry['query']}")
+    for item in entry.get(key, []):
         print(
-            f"Document: {document}, "
-            f"Synthetic Score: {synthetic_score:.2f}, "
-            f"Actual Score: {actual_score:.2f}, "
-            f"Weighted Score: {weighted_score:.2f}, "
-            f"Adjusted Score: {adjusted_score:.2f}, "
-            f"Distance: {distance:.2f}"
+            f"Document: {item['document']}, "
+            f"Synthetic Score: {item['synthetic_score']:.2f}, "
+            f"Actual Score: {item['actual_score']:.2f}, "
+            f"Weighted Score: {item['weighted_score']:.2f}, "
+            f"Adjusted Score: {item['adjusted_score']:.2f}, "
+            f"Distance: {item['distance']:.2f}, "
+            f"Normalized Distance: {item['normalized_distance']:.2f}, "
+            f"Classification: {item['classification']}"
         )
 
 
@@ -90,6 +133,24 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Path to JSON file containing semantic training data.",
     )
+    parser.add_argument(
+        "--weight_synthetic",
+        type=float,
+        default=0.7,
+        help="Weight for synthetic scores.",
+    )
+    parser.add_argument(
+        "--penalty_factor",
+        type=float,
+        default=0.1,
+        help="Penalty factor for distance.",
+    )
+    parser.add_argument(
+        "--max_distance",
+        type=float,
+        default=1.0,
+        help="Maximum distance for normalization.",
+    )
     return parser.parse_args()
 
 
@@ -100,15 +161,27 @@ def main():
     dataset: list[dict[str, any]] = load_json(args.input)
 
     for entry in dataset:
-        query = entry["query"]
-        query_embed = get_embeddings(llama_api, query)
-        print(f"\nQuery: {query}")
+        calc_embeddings(
+            llama_api,
+            entry,
+            "related",
+            weight_synthetic=args.weight_synthetic,
+            weight_actual=1 - args.weight_synthetic,
+            penalty_factor=args.penalty_factor,
+            max_distance=args.max_distance,
+        )
+        print_embeddings(entry, "related")
 
-        print("\nRelated Documents:")
-        calc_embeddings(llama_api, query_embed, entry, "related")
-
-        print("\nUnrelated Documents:")
-        calc_embeddings(llama_api, query_embed, entry, "unrelated")
+        calc_embeddings(
+            llama_api,
+            entry,
+            "unrelated",
+            weight_synthetic=args.weight_synthetic,
+            weight_actual=1 - args.weight_synthetic,
+            penalty_factor=args.penalty_factor,
+            max_distance=args.max_distance,
+        )
+        print_embeddings(entry, "unrelated")
 
 
 if __name__ == "__main__":
