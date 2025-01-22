@@ -1,0 +1,101 @@
+---
+# Docs: https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+
+# Base style and language specification
+BasedOnStyle: LLVM
+Language: Cpp
+
+# Pointer and reference alignment
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Right
+
+# Indentation
+IndentWidth: 4
+IndentCaseLabels: true
+IndentCaseBlocks: true
+AccessModifierOffset: -2
+ConstructorInitializerIndentWidth: 10
+IndentPPDirectives: BeforeHash
+PPIndentWidth: 4
+
+# Single-line
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: All
+
+# Namespace formatting
+NamespaceIndentation: All
+CompactNamespaces: false
+FixNamespaceComments: true
+
+# Alignment
+AlignAfterOpenBracket: BlockIndent
+AlignConsecutiveAssignments:
+  Enabled: false
+  AcrossComments: true
+  AlignCompound: false
+AlignConsecutiveDeclarations:
+  Enabled: false
+  AcrossComments: true
+AlignConsecutiveMacros:
+  Enabled: false
+  AcrossEmptyLines: true
+  AcrossComments: true
+AlignEscapedNewlines: DontAlign
+MaxEmptyLinesToKeep: 1
+AlignTrailingComments:
+  Kind: Never
+  OverEmptyLines: 0  # Is set to 1 if MaxEmptyLinesToKeep is 2
+AlignArrayOfStructures: None
+
+# Spacing
+SpaceAfterCStyleCast: true
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
+SpaceAroundPointerQualifiers: Before
+SpaceBeforeAssignmentOperators: true
+SpacesInAngles: Never
+
+# Control structure formatting
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+  IndentBraces: false
+
+# Breaking settings
+BreakBeforeBinaryOperators: true
+AlwaysBreakBeforeMultilineStrings: false
+
+# Parameter and argument packing
+BinPackParameters: false
+BinPackArguments: false
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+
+# Comma insertion
+InsertTrailingCommas: Wrapped
+
+# Miscellaneous insertions
+InsertBraces: true  # Warn: Setting this option to true could break code
+Cpp11BracedListStyle: true
+InsertNewlineAtEOF: true
+SeparateDefinitionBlocks: Always
+
+# Line width and wrapping
+ColumnLimit: 100
+
+# Commented out options (for version compatibility or preference)
+# BracedInitializerIndentWidth: 4  # Requires clang-format version 17 or higher
+...
