@@ -6,7 +6,7 @@
 /llama.cpp
 /local
 /models
-/prompts
+/prompt
 /data
 
 # Byte-compiled / optimized / DLL files
