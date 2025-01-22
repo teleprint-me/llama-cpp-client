@@ -85,11 +85,11 @@ def calc_embeddings(
 
         # Classify results
         if adjusted_score > 0.8:
-            classification = "Highly Related"
+            classification = "high"
         elif adjusted_score > 0.5:
-            classification = "Partially Related"
+            classification = "medium"
         else:
-            classification = "Unrelated"
+            classification = "low"
 
         results.append(
             {
