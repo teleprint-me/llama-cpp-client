@@ -7,7 +7,6 @@ from argparse import ArgumentParser
 
 def add_common_general_args(parser: ArgumentParser):
     parser.add_argument(
-        "-v",
         "--verbose",
         action="store_true",
         help="Enable verbose logging for debugging purposes. (Default: False)",
