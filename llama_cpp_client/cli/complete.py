@@ -89,9 +89,9 @@ def main():
     )
 
     if args.completions:
-        llama_cpp_history = LlamaCppHistory(args.session_name)
+        llama_cpp_history = LlamaCppHistory(args.session)
     else:
-        llama_cpp_history = LlamaCppHistory(args.session_name, args.system_message)
+        llama_cpp_history = LlamaCppHistory(args.session, args.system)
 
     box_type = BOX_TO_STRING[args.box]
 
