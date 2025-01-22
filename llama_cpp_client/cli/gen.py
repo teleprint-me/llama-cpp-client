@@ -6,6 +6,11 @@ Description: CLI tool for generating content or datasets using LlamaCppAuto.
 import argparse
 import sys
 
+from llama_cpp_client.common.args import (
+    add_common_api_args,
+    add_common_general_args,
+    add_common_request_args,
+)
 from llama_cpp_client.llama.api import LlamaCppAPI
 from llama_cpp_client.llama.auto import LlamaCppAuto
 from llama_cpp_client.llama.request import LlamaCppRequest
@@ -38,77 +43,9 @@ def parse_args() -> argparse.Namespace:
         default="```",
         help="The end of a block to parse. (Default: ```)",
     )
-    parser.add_argument(
-        "--base-url",
-        type=str,
-        default="http://127.0.0.1",
-        help="The servers url (default: http://127.0.0.1)",
-    )
-    parser.add_argument(
-        "--port",
-        type=str,
-        default="8080",
-        help="The servers port (default: 8080)",
-    )
-    parser.add_argument(
-        "--top-k",
-        type=int,
-        default=50,
-        help="Limit output tokens to top-k most likely (default: 50)",
-    )
-    parser.add_argument(
-        "--top-p",
-        type=float,
-        default=0.9,
-        help="Only consider tokens with prob greater than top-p (default: 0.9)",
-    )
-    parser.add_argument(
-        "--min-p",
-        type=float,
-        default=0.1,
-        help="Minimum token probability (default: 0.1)",
-    )
-    parser.add_argument(
-        "--temperature",
-        type=float,
-        default=0.7,
-        help="Temperature for output randomness (default: 0.7)",
-    )
-    parser.add_argument(
-        "--repeat-penalty",
-        type=float,
-        default=1.0,
-        help="Penalty for repeating tokens (default: 1.0, no effect)",
-    )
-    parser.add_argument(
-        "--n-predict",
-        type=int,
-        default=-1,
-        help="The number of tokens to predict (default: -1, inf)",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=1,
-        help="Initial value for random number generator (default: -1)",
-    )
-    parser.add_argument(
-        "--cache-prompt",
-        action="store_true",
-        help="Reuse cached prompts to speed up processing (default: False)",
-    )
-    parser.add_argument(
-        "--stop",
-        type=str,
-        default="",
-        help="List of stop tokens to ignore (default: empty string; use comma delimited list, no spaces).",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Enable verbosity. (Default: False)",
-    )
+    add_common_request_args(parser)
+    add_common_api_args(parser)
+    add_common_general_args(parser)
     return parser.parse_args()
 
 
@@ -125,7 +62,7 @@ def main():
         sys.exit(1)
 
     # Initialize core requests
-    llama_request = LlamaCppRequest(base_url=args.base_url, port=args.port)
+    llama_request = LlamaCppRequest(args.base_url, args.port, verbose=args.verbose)
 
     # Initialize core REST API
     stop = [token for token in args.stop.split(",") if token]
@@ -140,6 +77,7 @@ def main():
         seed=args.seed,
         cache_prompt=args.cache_prompt,
         stop=stop,
+        verbose=args.verbose,
     )
 
     # Initialize autonomous behavior

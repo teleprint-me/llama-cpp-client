@@ -28,7 +28,7 @@ class LlamaCppRequest:
         base_url: str = "http://127.0.0.1",
         port: str = "8080",
         headers: Dict[str, str] = None,
-        log_level: int = logging.INFO,
+        verbose: bool = False,
     ):
         """
         Initialize the LlamaCppRequest instance.
@@ -40,6 +40,7 @@ class LlamaCppRequest:
         """
         self.base_url = f"{base_url}:{port}"
         self.headers = headers or {"Content-Type": "application/json"}
+        log_level = logging.INFO if verbose else logging.DEBUG
         self.logger = get_logger(self.__class__.__name__, level=log_level)
         self.logger.debug("Initialized LlamaCppRequest instance.")
 
