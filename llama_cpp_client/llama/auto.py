@@ -12,6 +12,8 @@ import html
 import json
 import sys
 
+import numpy as np
+
 from llama_cpp_client.llama.api import LlamaCppAPI
 
 
@@ -68,25 +70,46 @@ class LlamaCppAuto:
 
     def save_text(self, data: str, file_path: str) -> None:
         """Save data to a text file."""
+
+        if isinstance(data, list):
+            data = "\n".join(data)
+
         with open(file_path, "w") as f:
             f.write(data)
         print(f"Content saved to {file_path}")
 
     def save_json(self, data: object, file_path: str) -> None:
         """Dump data to a JSON file."""
+
+        def default_serializer(obj):
+            if isinstance(obj, (np.float32, np.float64)):
+                return float(obj)  # Convert NumPy floats to Python floats
+            if isinstance(obj, (np.int32, np.int64)):
+                return int(obj)  # Convert NumPy integers to Python integers
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()  # Convert NumPy arrays to lists
+
+            raise TypeError(
+                f"Object of type {type(obj).__name__} is not JSON serializable"
+            )
+
         with open(file_path, "w") as f:
-            json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2, default=default_serializer)
         print(f"JSON saved to {file_path}")
 
     def save(self, data: object, file_path: str) -> None:
-        ext = file_path.split(".")[-1]
-        if ext == "json":
+        if file_path.endswith(".json"):
             self.save_json(data, file_path)
             print(f"Save {file_path} as json.")
-        # if ext == special_format: ...
         else:
             self.save_text(data, file_path)
             print(f"Save {file_path} as plaintext.")
+
+    def parse(self, block: str) -> any:
+        try:
+            return json.loads(block)
+        except json.JSONDecodeError:
+            return block
 
     def parse_blocks(
         self,
@@ -118,13 +141,9 @@ class LlamaCppAuto:
                 continue
             if line.strip() == block_end:
                 block_in = False
-                try:
-                    # Parse the current block as JSON
-                    blocks.append(json.loads(current_block))
-                except json.JSONDecodeError as e:
-                    print(f"Failed to parse JSON block: {e}")
+                blocks.append(self.parse(current_block))
                 continue
             if block_in:
-                current_block += line.strip()
+                current_block += line + "\n"
 
         return blocks

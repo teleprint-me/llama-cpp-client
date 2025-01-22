@@ -162,15 +162,19 @@ def main():
         print(f"\nModel produced {llama_auto.token_count(response)} tokens.")
 
     # Generate dataset or single content
-    if args.parse:
+    if args.output and args.parse:
         parsed_entries = llama_auto.parse_blocks(
             response,
             args.block_start,
             args.block_end,
         )
-        if args.output and parsed_entries:
+        if parsed_entries:
             llama_auto.save(parsed_entries, args.output)
-    if not args.parse and args.verbose:
+        else:
+            print("Failed to parse entries.")
+    elif args.output and not args.parse:
+        llama_auto.save(response, args.output)
+    elif not args.output and args.verbose:
         print("Did not write parsed response to output.")
 
 
