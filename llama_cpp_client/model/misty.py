@@ -202,16 +202,49 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-j", "--json", help="Path to the training data file.")
     parser.add_argument("-m", "--model", help="Path to the model file.")
     parser.add_argument(
-        "-e", "--epochs", type=int, default=10, help="Number of training epochs."
+        "--hidden-dim",
+        type=int,
+        default=128,
+        help="Hidden dimension size.",
+    )
+    parser.add_argument("--dropout-rate", type=float, default=0.1, help="Dropout rate.")
+    parser.add_argument(
+        "-e",
+        "--epochs",
+        type=int,
+        default=10,
+        help="Number of training epochs.",
     )
     parser.add_argument(
-        "-b", "--batch-size", type=int, default=32, help="Batch size for training."
+        "-l",
+        "--learning-rate",
+        type=float,
+        default=0.001,
+        help="Learning rate.",
     )
     parser.add_argument(
-        "-l", "--learning-rate", type=float, default=0.001, help="Learning rate."
+        "--batch-size",
+        type=int,
+        default=512,
+        help="Physical batch size for processing (Default: 512; Set by llama-server).",
     )
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=256,
+        help="Size of each chunk in tokens (Default: 256; Must be less than batch size).",
+    )
+    parser.add_argument(
+        "--overlap",
+        type=int,
+        default=0,
+        help="Overlap between chunks in tokens (Default: 0).",
+    )
+    # set host and port
     add_common_request_args(parser)
+    # set model hyperparameters
     add_common_api_args(parser)
+    # set verbosity
     add_common_general_args(parser)
     return parser.parse_args()
 
@@ -241,6 +274,9 @@ if __name__ == "__main__":
         stop=stop,
         verbose=args.verbose,
     )
+
+    # Initialize chunker
+    llama_chunker = LlamaCppChunker(api=llama_api, verbose=args.verbose)
 
     # Initialize Misty model
     misty = MistyEmbeddingModel(llama_api=llama_api)

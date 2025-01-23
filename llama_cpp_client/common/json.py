@@ -1,5 +1,8 @@
 """
+Copyright © 2023 Austin Berrio
+
 Module: llama_cpp_client.common.json
+
 Description: This module provides utility functions for working with JSON data.
 """
 
