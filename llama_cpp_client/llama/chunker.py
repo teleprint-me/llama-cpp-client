@@ -88,17 +88,17 @@ class LlamaCppChunker:
     def chunk_text(
         self,
         content: str,
-        chunk_size: int = 0,
-        overlap: int = 0,
         batch_size: int = 512,
+        chunk_size: int = 256,
+        overlap: int = 0,
     ) -> List[str]:
         """
         Split text into chunks compatible with the model's embedding size and batch size.
         Args:
             content (str): The text to be chunked.
+            batch_size (int): Physical batch size (defaults to 512).
             chunk_size (int): Maximum number of tokens per chunk (defaults to batch size - special tokens).
             overlap (int): Number of tokens to overlap between chunks (defaults to 0).
-            batch_size (int): Physical batch size (defaults to 512).
         Returns:
             List[str]: List of text chunks.
         """
@@ -118,7 +118,7 @@ class LlamaCppChunker:
             raise ValueError("Overlap must be smaller than chunk size.")
 
         chunks = []
-        tokens = self.api.tokenize(self.content, add_special=False, with_pieces=False)
+        tokens = self.api.tokenize(content, add_special=False, with_pieces=False)
         for i in range(0, len(tokens), chunk_size - overlap):
             chunk_tokens = tokens[i : i + chunk_size]
             chunk_text = self.api.detokenize(chunk_tokens)
@@ -128,8 +128,8 @@ class LlamaCppChunker:
                     f"Chunk {i // (chunk_size - overlap)}: {len(chunk_tokens)} tokens."
                 )
 
-        if not chunks and self.content.strip():
-            chunks.append(self.content.strip())
+        if not chunks and content.strip():
+            chunks.append(content.strip())
             self.logger.debug(
                 "Content too short for chunking; returned as single chunk."
             )
@@ -145,13 +145,27 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Chunk a text into smaller pieces.")
     parser.add_argument("--text-file", type=str, help="Path to the text file to chunk.")
     parser.add_argument(
-        "--chunk-size", type=int, default=1024, help="Size of each chunk in tokens."
+        "--batch-size",
+        type=int,
+        default=512,
+        help="Physical batch size for processing (Default: 512; Set by llama-server).",
     )
     parser.add_argument(
-        "--overlap", type=int, default=512, help="Overlap between chunks in tokens."
+        "--chunk-size",
+        type=int,
+        default=256,
+        help="Size of each chunk in tokens (Default: 256; Must be less than batch size).",
     )
     parser.add_argument(
-        "--verbose", action="store_true", help="Enable verbose logging."
+        "--overlap",
+        type=int,
+        default=0,
+        help="Overlap between chunks in tokens (Default: 0).",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging (Default: False).",
     )
     args = parser.parse_args()
 
@@ -162,6 +176,6 @@ if __name__ == "__main__":
         text = file.read()
 
     chunker = LlamaCppChunker(verbose=args.verbose)
-    chunks = chunker.chunk_text(text, args.chunk_size, args.overlap)
+    chunks = chunker.chunk_text(text, args.batch_size, args.chunk_size, args.overlap)
     for i, chunk in enumerate(chunks):
         logger.info(f"Chunk {i+1}: {chunk}")
