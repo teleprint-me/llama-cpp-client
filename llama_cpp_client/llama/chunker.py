@@ -17,9 +17,7 @@ from llama_cpp_client.llama.api import LlamaCppAPI
 class LlamaCppChunker:
     """Class for processing and chunking file contents."""
 
-    def __init__(
-        self, file_path: str, api: LlamaCppAPI = None, verbose: bool = False
-    ) -> None:
+    def __init__(self, api: LlamaCppAPI = None, verbose: bool = False) -> None:
         """
         Initialize the FileChunker with the API instance and file path.
 
@@ -34,8 +32,6 @@ class LlamaCppChunker:
             name=self.__class__.__name__,
             level=logging.DEBUG if verbose else logging.INFO,
         )
-        self.file_contents = ""
-        self.read_file_contents(file_path)
 
     @property
     def embed_size(self) -> int:
@@ -48,65 +44,69 @@ class LlamaCppChunker:
         # Use a dummy input to count special tokens
         return len(self.api.tokenize("", add_special=True, with_pieces=False))
 
-    def read_file_contents(self, file_path: str) -> None:
-        """Read a file and store its contents."""
-        try:
-            with open(file_path, "r") as file:
-                self.file_contents = file.read()
-            if self.verbose:
-                self.logger.debug(f"Read file contents from: {file_path}")
-        except FileNotFoundError:
-            raise ValueError(f"File not found: {file_path}")
-        except IOError as e:
-            raise ValueError(f"Error reading file {file_path}: {e}")
-
     def normalize_text(
         self,
+        content: str,
         lowercase: bool = False,
         remove_punctuation: bool = False,
         preserve_structure: bool = True,
-    ) -> None:
+    ) -> str:
         """
         Normalize text by removing punctuation and converting to lowercase.
-
         Args:
+            content (str): The text to be normalized.
             lowercase (bool): Whether to convert text to lowercase.
             remove_punctuation (bool): Whether to remove punctuation.
             preserve_structure (bool): Whether to preserve basic punctuation for structure.
+        Returns:
+            str: The normalized text.
+        Raises:
+            ValueError: If the content is not a string.
         """
-        if not self.file_contents.strip():
-            self.logger.debug("File is empty; skipping normalization.")
-            return
+        if not isinstance(content, str):
+            raise ValueError("Content must be a string.")
 
-        normalized = self.file_contents.strip()
+        normalized = content.strip()
+        if not normalized:
+            self.logger.debug("Content is empty; skipping normalization.")
+            return ""
+
         if lowercase:
             normalized = normalized.lower()
+
         if remove_punctuation:
             if preserve_structure:
                 normalized = re.sub(r"[^\w\s.,?!'\"()]", "", normalized)
             else:
                 normalized = re.sub(r"[^\w\s]", "", normalized)
-        self.file_contents = normalized
+
         if self.verbose:
             self.logger.debug("Text normalization completed.")
 
-    def chunk_text_with_model(
+        return normalized
+
+    def chunk_text(
         self,
+        content: str,
         chunk_size: int = 0,
         overlap: int = 0,
         batch_size: int = 512,
     ) -> List[str]:
         """
         Split text into chunks compatible with the model's embedding size and batch size.
-
         Args:
+            content (str): The text to be chunked.
             chunk_size (int): Maximum number of tokens per chunk (defaults to batch size - special tokens).
-            overlap (int): Number of tokens to overlap between chunks.
+            overlap (int): Number of tokens to overlap between chunks (defaults to 0).
             batch_size (int): Physical batch size (defaults to 512).
-
         Returns:
             List[str]: List of text chunks.
         """
+        if not isinstance(content, str):
+            raise ValueError("Content must be a string.")
+        if not content:
+            raise ValueError("Content cannot be empty.")
+
         # Determine the special token overhead
         max_tokens = batch_size - self.special_token_count
         if not (0 < chunk_size < max_tokens):
@@ -118,9 +118,7 @@ class LlamaCppChunker:
             raise ValueError("Overlap must be smaller than chunk size.")
 
         chunks = []
-        tokens = self.api.tokenize(
-            self.file_contents, add_special=False, with_pieces=False
-        )
+        tokens = self.api.tokenize(self.content, add_special=False, with_pieces=False)
         for i in range(0, len(tokens), chunk_size - overlap):
             chunk_tokens = tokens[i : i + chunk_size]
             chunk_text = self.api.detokenize(chunk_tokens)
@@ -130,11 +128,39 @@ class LlamaCppChunker:
                     f"Chunk {i // (chunk_size - overlap)}: {len(chunk_tokens)} tokens."
                 )
 
-        if not chunks and self.file_contents.strip():
-            chunks.append(self.file_contents.strip())
+        if not chunks and self.content.strip():
+            chunks.append(self.content.strip())
             self.logger.debug(
                 "Content too short for chunking; returned as single chunk."
             )
 
         self.logger.debug(f"Generated {len(chunks)} chunks.")
         return chunks
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Chunk a text into smaller pieces.")
+    parser.add_argument("--text-file", type=str, help="Path to the text file to chunk.")
+    parser.add_argument(
+        "--chunk-size", type=int, default=1024, help="Size of each chunk in tokens."
+    )
+    parser.add_argument(
+        "--overlap", type=int, default=512, help="Overlap between chunks in tokens."
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Enable verbose logging."
+    )
+    args = parser.parse_args()
+
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logger = get_logger(name="chunker", level=log_level)
+
+    with open(args.text_file, "r", encoding="utf-8") as file:
+        text = file.read()
+
+    chunker = LlamaCppChunker(verbose=args.verbose)
+    chunks = chunker.chunk_text(text, args.chunk_size, args.overlap)
+    for i, chunk in enumerate(chunks):
+        logger.info(f"Chunk {i+1}: {chunk}")
