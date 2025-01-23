@@ -19,7 +19,7 @@ from llama_cpp_client.llama.request import LlamaCppRequest
 class LlamaCppAPI:
     def __init__(
         self,
-        request: LlamaCppRequest = None,
+        llama_request: LlamaCppRequest = None,
         top_k: int = 50,
         top_p: float = 0.90,
         min_p: float = 0.1,
@@ -38,7 +38,9 @@ class LlamaCppAPI:
         verbose = kwargs.get("verbose", False)
         log_level = logging.DEBUG if verbose else logging.INFO
         self.logger = get_logger(self.__class__.__name__, level=log_level)
-        self.request = request or LlamaCppRequest(verbose=verbose)
+        self.request = (
+            llama_request if llama_request else LlamaCppRequest(verbose=verbose)
+        )
 
         # Set model hyperparameters
         self.data = {
@@ -192,6 +194,7 @@ class LlamaCppAPI:
 if __name__ == "__main__":
     import argparse
     import sys  # Allow streaming to stdout
+    from pathlib import Path
 
     from rich import print  # Decorate output
 
@@ -226,8 +229,10 @@ if __name__ == "__main__":
 
         # Example: Get model file path for a specific slot
         slot_index = 0
-        model_path = llama_api.get_model(slot=slot_index)
-        print(f"Model Path for Slot {slot_index}: {model_path}")
+        model_path = Path(llama_api.get_model_path(slot=slot_index))
+        dir_path = model_path.parent
+        print(f"Model Path for Slot {slot_index}: {str(model_path)}")
+        print(f"Model Directory for Slot {slot_index}: {str(dir_path)}")
 
         # Example: Get prompt for a specific slot
         prompt = llama_api.get_prompt(slot=slot_index)
