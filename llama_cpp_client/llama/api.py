@@ -34,11 +34,11 @@ class LlamaCppAPI:
         **kwargs: Any,  # Additional optional parameters
     ) -> None:
         """Initialize the API with default model parameters and request handler."""
-        # NOTE: verbose is added to data which increases server verbosity.
-        # Popping this is optional, but I'm leaving it for now.
+        # Setup logger and request object
         verbose = kwargs.get("verbose", False)
         log_level = logging.DEBUG if verbose else logging.INFO
-        self.request = request or LlamaCppRequest(log_level=log_level)
+        self.logger = get_logger(self.__class__.__name__, level=log_level)
+        self.request = request or LlamaCppRequest(verbose=verbose)
 
         # Set model hyperparameters
         self.data = {
@@ -59,9 +59,6 @@ class LlamaCppAPI:
 
         # Update self.data with any additional parameters from kwargs
         self.data.update(kwargs)
-
-        # Setup logger
-        self.logger = get_logger(self.__class__.__name__, level=log_level)
         self.logger.debug("Initialized LlamaCppAPI instance.")
 
     def error(self, code: int, message: str, type: str) -> dict[str, Any]:
