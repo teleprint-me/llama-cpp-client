@@ -6,32 +6,25 @@ Script: llama_cpp_client.cli.tokenize
 Description: Experimental script for handling REST API tokenizer requests.
 
 Usage Example:
-python -m llama_cpp_client.cli.tokenizer -e 'Hello, world!'
-[9906, 11, 1917, 0]
+python -m llama_cpp_client.cli.tokenize 'Hello, world!'
+Encoding: [9906, 11, 1917, 0]
 """
 
 import argparse
 import pathlib
 
+from llama_cpp_client.common.args import (
+    add_common_general_args,
+    add_common_request_args,
+)
 from llama_cpp_client.llama.api import LlamaCppAPI
 from llama_cpp_client.llama.request import LlamaCppRequest
+from llama_cpp_client.llama.tokenizer import LlamaCppTokenizer
 
 
-def get_arguments() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("prompt", type=str, help="A string or file path used as input")
-    parser.add_argument(
-        "--base-url",
-        type=str,
-        default="http://127.0.0.1",
-        help="The servers url (default: http://127.0.0.1)",
-    )
-    parser.add_argument(
-        "--port",
-        type=str,
-        default="8080",
-        help="The servers port (default: 8080)",
-    )
     parser.add_argument(
         "-f",
         "--file",
@@ -46,15 +39,9 @@ def get_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "-s",
-        "--special",
+        "--add-special-tokens",
         action="store_true",
         help="Include special tokens.",
-    )
-    parser.add_argument(
-        "-e",
-        "--encoded",
-        action="store_true",
-        help="Convert text to encoding ids and print to stdout",
     )
     parser.add_argument(
         "-d",
@@ -68,38 +55,41 @@ def get_arguments() -> argparse.Namespace:
         action="store_true",
         help="Get the length of the input and print to stdout",
     )
+    add_common_request_args(parser)  # Host and port
+    add_common_general_args(parser)  # Verbose
     return parser.parse_args()
 
 
 def main():
-    args = get_arguments()
+    args = parse_args()
 
     # Initialize the LlamaCppRequest instance
-    llama_request = LlamaCppRequest(base_url=args.base_url, port=args.port)
+    llama_request = LlamaCppRequest(
+        base_url=args.base_url, port=args.port, verbose=args.verbose
+    )
     # Initialize the LlamaCppAPI instance
-    llama_api = LlamaCppAPI(request=llama_request)
+    llama_api = LlamaCppAPI(llama_request=llama_request, verbose=args.verbose)
+    # Initialize the LlamaCppTokenizer instance
+    llama_tokenizer = LlamaCppTokenizer(llama_api=llama_api, verbose=args.verbose)
 
+    # Load the tokenizer model
     if args.file:
         path = pathlib.Path(args.prompt)
         with open(path, "r") as file:
-            content = file.read()
-        encodings = llama_api.tokenize(content, args.special, args.with_pieces)
-    else:
-        encodings = llama_api.tokenize(args.prompt, args.special, args.with_pieces)
+            args.prompt = file.read()
 
-    if args.encoded:
-        print(encodings)
+    # Encode the prompt using the tokenizer
+    encodings = llama_tokenizer.encode(
+        args.prompt, args.add_special_tokens, args.with_pieces
+    )
+    print(f"Encoding: {encodings}")
 
     if args.length:
-        print(len(encodings))
+        print(f"Encoding length: {len(encodings)}")
 
     if args.decoded:
-        if args.with_pieces:
-            decodings = llama_api.detokenize([v["id"] for v in encodings])
-        else:
-            decodings = llama_api.detokenize(encodings)
-
-        print(decodings)
+        decodings = llama_tokenizer.decode(encodings)
+        print(f"Decoding: {decodings}")
 
 
 if __name__ == "__main__":
