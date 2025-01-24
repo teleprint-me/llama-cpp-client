@@ -62,7 +62,7 @@ def main():
         sys.exit(1)
 
     # Initialize core requests
-    llama_request = LlamaCppRequest(args.base_url, args.port, verbose=args.verbose)
+    llama_request = LlamaCppRequest(args.base_url, args.port)
 
     # Initialize core REST API
     stop = [token for token in args.stop.split(",") if token]
@@ -77,7 +77,6 @@ def main():
         seed=args.seed,
         cache_prompt=args.cache_prompt,
         stop=stop,
-        verbose=args.verbose,
     )
 
     # Initialize autonomous behavior
