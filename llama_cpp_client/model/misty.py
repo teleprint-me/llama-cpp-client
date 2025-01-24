@@ -7,6 +7,7 @@ A simple embedding model to intermediate handling semantic document similarities
 """
 
 import argparse
+import os
 
 import torch
 import torch.nn as nn
@@ -140,6 +141,11 @@ def train_model(
         epochs (int): Number of training epochs.
         learning_rate (float): Learning rate for the optimizer.
     """
+    # Load the model if a checkpoint exists
+    if os.path.exists(model_path):
+        print(f"Loading model from {model_path}")
+        embedding_model.load_state_dict(torch.load(model_path, weights_only=True))
+
     optimizer = torch.optim.Adam(embedding_model.parameters(), lr=learning_rate)
     loss_fn = nn.CosineEmbeddingLoss()
 
@@ -151,21 +157,27 @@ def train_model(
         for batch_idx, batch in enumerate(batched_dataset):
             optimizer.zero_grad()
 
-            # Extract query, document, and label
+            # Extract queries, documents, and labels
             query_tokens = batch["query"]  # Shape: (batch_size, seq_len)
             document_tokens = batch["document"]  # Shape: (batch_size, seq_len)
-            label = batch["label"]  # Shape: (batch_size, )
+            labels = batch["label"]  # Shape: (batch_size, )
 
             # Generate embeddings
             query_embeddings = embedding_model(query_tokens)
             document_embeddings = embedding_model(document_tokens)
 
+            # Normalize embeddings for consistent cosine similarity
+            query_embeddings = F.normalize(query_embeddings, p=2, dim=1)
+            document_embeddings = F.normalize(document_embeddings, p=2, dim=1)
+
             # Compute loss using CosineEmbeddingLoss
-            # Labels should be 1 for similar and -1 for dissimilar pairs
-            loss = loss_fn(query_embeddings, document_embeddings, label)
+            loss = loss_fn(query_embeddings, document_embeddings, labels)
 
             # Backpropagation
             loss.backward()
+
+            # Gradient clipping for stability
+            torch.nn.utils.clip_grad_norm_(embedding_model.parameters(), max_norm=1.0)
             optimizer.step()
 
             total_loss += loss.item()
