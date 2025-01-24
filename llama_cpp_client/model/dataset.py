@@ -82,7 +82,7 @@ class EmbeddingDataset:
 
     def tokenize(
         self,
-        dataset: List[Dict[str, Union[str, List[Dict[str, Union[str, int]]]]]],
+        dataset: List[Dict[str, List[Dict[str, Union[str, int]]]]],
         max_length: int = 256,
         pad_token_id: int = -1,
     ) -> List[Dict[str, Union[int, List[int]]]]:
