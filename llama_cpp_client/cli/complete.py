@@ -70,12 +70,12 @@ def get_arguments() -> argparse.Namespace:
 def main():
     args = get_arguments()
 
-    llama_cpp_request = LlamaCppRequest(args.base_url, args.port, verbose=args.verbose)
+    llama_request = LlamaCppRequest(args.base_url, args.port, verbose=args.verbose)
 
     # set models hyperparameters
     stop = [token for token in args.stop.split(",") if token]
     llama_cpp_api = LlamaCppAPI(
-        llama_cpp_request,
+        llama_request,
         top_k=args.top_k,
         top_p=args.top_p,
         min_p=args.min_p,

@@ -67,7 +67,7 @@ def main():
     # Initialize core REST API
     stop = [token for token in args.stop.split(",") if token]
     llama_api = LlamaCppAPI(
-        request=llama_request,
+        llama_request,
         top_k=args.top_k,
         top_p=args.top_p,
         min_p=args.min_p,
