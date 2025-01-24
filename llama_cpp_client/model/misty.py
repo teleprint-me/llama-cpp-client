@@ -178,6 +178,61 @@ def train_model(
             print(f"Model saved to {model_path}")
 
 
+# NOTE: The physical batch size is dictated by the llama-server and max_length
+# must be less than or equal to batch_size for the prompt. The server will throw
+# a 501 error if max_length is greater than batch_size.
+# If the max_length does not match the dimension of the tensor, the script will
+# raise an error.
+def eval_model(args, dataset, llama_tokenizer, pad_token_id):
+    # Test the model
+    embedding_model.eval()
+    with torch.no_grad():
+        for entry_idx, entry in enumerate(dataset):
+            # Encode query
+            query_tokens = llama_tokenizer.encode(
+                entry["query"], add_special_tokens=False
+            )
+            query_tokens = query_tokens[: args.batch_size] + [pad_token_id] * max(
+                0, args.batch_size - len(query_tokens)
+            )
+            query_tensor = torch.tensor([query_tokens], dtype=torch.long)  # Batch of 1
+            query_embedding = embedding_model(query_tensor)  # Shape: (1, embedding_dim)
+
+            # Encode documents and compute similarities
+            documents = entry["related"] + entry["unrelated"]
+            document_embeddings = []
+            document_labels = []
+
+            for doc in documents:
+                doc_tokens = llama_tokenizer.encode(
+                    doc["document"], add_special_tokens=False
+                )
+                doc_tokens = doc_tokens[: args.batch_size] + [pad_token_id] * max(
+                    0, args.batch_size - len(doc_tokens)
+                )
+                document_tensor = torch.tensor([doc_tokens], dtype=torch.long)
+                document_embeddings.append(embedding_model(document_tensor))
+                document_labels.append(doc["label"])
+
+            document_embeddings = torch.cat(
+                document_embeddings, dim=0
+            )  # Stack embeddings
+            similarities = embedding_model.compute_similarity(
+                query_embedding, document_embeddings
+            )
+            similarities = similarities.squeeze(0)  # Shape: (num_documents,)
+
+            # Display top matches
+            print(f"Query {entry_idx + 1}: {entry['query']}")
+            sorted_indices = similarities.argsort(descending=True)
+            for rank, idx in enumerate(sorted_indices[:3]):  # Top 3 matches
+                label = document_labels[idx]
+                print(
+                    f"  Rank {rank + 1}: Document {idx + 1} (Label: {label}) - "
+                    f"Similarity: {similarities[idx]:.4f}"
+                )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a document similarity model.")
     parser.add_argument(
@@ -263,6 +318,9 @@ if __name__ == "__main__":
     embedding_dataset = EmbeddingDataset(llama_tokenizer, args.verbose)
     dataset = embedding_dataset.load(args.dataset_path)
     pad_token_id = llama_tokenizer.encode(args.pad_token, add_special_tokens=False)[0]
+    # NOTE: The physical batch size is dictated by the llama-server and max_length
+    # must be less than or equal to batch_size for the prompt. The server will throw
+    # a 501 error if max_length is greater than batch_size.
     tokenized_dataset = embedding_dataset.tokenize(
         dataset, max_length=args.batch_size, pad_token_id=pad_token_id
     )
@@ -283,32 +341,4 @@ if __name__ == "__main__":
         learning_rate=args.learning_rate,
     )
 
-    similarities = []
-    for entry in dataset:
-        # Encode the query embeddings
-        query = entry.get("query")
-        query_tokens = llama_tokenizer.encode(query, add_special_tokens=False)
-        query_tokens = query_tokens[: args.batch_size] + [pad_token_id] * max(
-            0, args.batch_size - len(query_tokens)
-        )
-        query_batch = [
-            torch.tensor(query_tokens, dtype=torch.long) for _ in range(args.batch_size)
-        ]
-        query_embedding = embedding_model(query_batch)
-        # Compute similarity with each document in the entry's related list
-        for item in entry.get("related", []):
-            document = item.get("document")
-            document_embedding = embedding_model(document)
-            results = embedding_model.compute_similarity(
-                query_embedding, document_embedding
-            )
-            similarities.append(results)
-
-    # Display results
-    for i, query in enumerate(similarities):
-        print(f"Query {i + 1}: {query}")
-        sorted_indices = similarities[i].argsort(descending=True)
-        for rank, idx in enumerate(sorted_indices[:3]):  # Top 3 matches
-            print(
-                f"  Rank {rank + 1}: Document {idx + 1} - Similarity: {similarities[i, idx]:.4f}"
-            )
+    eval_model(args, dataset, llama_tokenizer, pad_token_id)
