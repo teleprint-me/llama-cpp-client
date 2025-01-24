@@ -26,6 +26,31 @@ class EmbeddingDataset:
         log_level = logging.DEBUG if verbose else logging.INFO
         self.logger = get_logger(self.__class__.__name__, log_level)
 
+    def load(self, file_path: str) -> List[Dict[str, List[Dict[str, Union[str, int]]]]]:
+        with open(file_path, "r") as f:
+            try:
+                dataset = json.load(f)
+                self.validate(dataset)
+                return dataset
+            except (json.JSONDecodeError, ValueError) as e:
+                self.logger.error(f"Error loading dataset: {e}")
+                return []
+
+    def save(
+        self,
+        file_path: str,
+        dataset: List[Dict[str, Union[torch.Tensor, List]]],
+    ) -> None:
+        with open(file_path, "w") as f:
+
+            def default(obj):
+                if isinstance(obj, torch.Tensor):
+                    return obj.tolist()
+                return obj
+
+            json.dump(dataset, f, indent=2, default=default)
+        self.logger.info(f"Dataset saved to {file_path}")
+
     def validate(
         self, dataset: List[Dict[str, Union[str, List[Dict[str, Union[str, int]]]]]]
     ) -> None:
@@ -59,42 +84,33 @@ class EmbeddingDataset:
                         if not isinstance(item["label"], int):
                             raise ValueError("The 'label' field must be an integer.")
 
-    def load(self, file_path: str) -> List[Dict[str, List[Dict[str, Union[str, int]]]]]:
-        with open(file_path, "r") as f:
-            try:
-                dataset = json.load(f)
-                self.validate(dataset)
-                return dataset
-            except (json.JSONDecodeError, ValueError) as e:
-                self.logger.error(f"Error loading dataset: {e}")
-                return []
-
-    def save(
-        self, file_path: str, dataset: List[Dict[str, Union[torch.Tensor, List]]]
-    ) -> None:
-        with open(file_path, "w") as f:
-
-            def default(obj):
-                if isinstance(obj, torch.Tensor):
-                    return obj.tolist()
-                return obj
-
-            json.dump(dataset, f, indent=2, default=default)
-        self.logger.info(f"Dataset saved to {file_path}")
-
     def tokenize(
         self,
         dataset: List[Dict[str, List[Dict[str, Union[str, int]]]]],
         max_length: int = 256,
         pad_token_id: int = -1,
-    ) -> List[Dict[str, Union[int, List[int]]]]:
+    ) -> List[Dict[str, Union[List[int], int]]]:
+        """
+        Tokenize the dataset into query-document pairs, retaining separate fields for query and document tokens.
+
+        Args:
+            dataset (List[Dict[str, List[Dict[str, Union[str, int]]]]]): The dataset to tokenize.
+            max_length (int): Maximum length for tokenized sequences.
+            pad_token_id (int): Padding token ID to use.
+
+        Returns:
+            List[Dict[str, Union[List[int], int]]]: Tokenized dataset with separate query and document fields.
+        """
         tokenized_data = []
         for entry in dataset:
-            # Read the query
+            # Tokenize the query
             query = entry["query"]
             query_tokens = self.tokenizer.encode(query, add_special_tokens=False)
+            query_tokens = query_tokens[:max_length] + [pad_token_id] * max(
+                0, max_length - len(query_tokens)
+            )
 
-            # Process related and unrelated documents
+            # Process related and unrelated documents separately
             for relation_type in ["related", "unrelated"]:
                 for item in entry[relation_type]:
                     document = item.get("document", "")
@@ -102,20 +118,22 @@ class EmbeddingDataset:
                     if label is None:
                         raise ValueError("Missing label for document.")
 
-                    # Tokenize document
+                    # Tokenize the document
                     document_tokens = self.tokenizer.encode(
                         document, add_special_tokens=False
                     )
+                    document_tokens = document_tokens[:max_length] + [
+                        pad_token_id
+                    ] * max(0, max_length - len(document_tokens))
 
-                    # Concatenate query and document tokens
-                    tokens = query_tokens + document_tokens
-                    # Truncate and pad the sequence
-                    tokens = tokens[:max_length] + [pad_token_id] * max(
-                        0, max_length - len(tokens)
+                    # Add the query-document pair to the tokenized dataset
+                    tokenized_data.append(
+                        {
+                            "query": query_tokens,
+                            "document": document_tokens,
+                            "label": label,
+                        }
                     )
-
-                    # Add to tokenized data
-                    tokenized_data.append({"tokens": tokens, "label": label})
         return tokenized_data
 
     def batch(
@@ -126,15 +144,11 @@ class EmbeddingDataset:
         batches = []
         for i in range(0, len(tokenized_data), batch_size):
             batch = tokenized_data[i : i + batch_size]
-            tokens_batch = torch.tensor(
-                [item["tokens"] for item in batch], dtype=torch.long
-            )
-            labels_batch = torch.tensor(
-                [item["label"] for item in batch], dtype=torch.long
-            )
-
-            # Append batch as a dictionary
-            batches.append({"tokens": tokens_batch, "labels": labels_batch})
+            batch_dict = {
+                key: torch.tensor([item[key] for item in batch], dtype=torch.long)
+                for key in batch[0].keys()
+            }
+            batches.append(batch_dict)
         return batches
 
 
