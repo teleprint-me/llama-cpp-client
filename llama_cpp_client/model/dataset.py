@@ -1,6 +1,6 @@
 """
 Module: llama_cpp_client.model.dataset
-Description: This module provides functions to load and process datasets for the Llama model.
+Description: This module provides functions to load and process datasets for an Embedding model.
 """
 
 import json
@@ -14,39 +14,75 @@ from llama_cpp_client.llama.api import LlamaCppAPI
 from llama_cpp_client.llama.tokenizer import LlamaCppTokenizer
 
 
-class LlamaCppDataset:
+class EmbeddingDataset:
     def __init__(
-        self,
-        llama_api: LlamaCppAPI = None,
-        llama_tokenizer: LlamaCppTokenizer = None,
-        verbose: bool = False,
+        self, llama_tokenizer: LlamaCppTokenizer = None, verbose: bool = False
     ):
-        self.llama_api = llama_api if llama_api else LlamaCppAPI(verbose=verbose)
-        self.llama_tokenizer = (
+        self.tokenizer = (
             llama_tokenizer if llama_tokenizer else LlamaCppTokenizer(verbose=verbose)
         )
         log_level = logging.DEBUG if verbose else logging.INFO
         self.logger = get_logger(self.__class__.__name__, log_level)
 
-    @property
-    def api(self) -> LlamaCppAPI:
-        return self.llama_api
+    def validate(
+        self, dataset: List[Dict[str, Union[str, List[Dict[str, Union[str, int]]]]]]
+    ) -> None:
+        """Validate the structure of the dataset."""
+        if not isinstance(dataset, list):
+            raise ValueError("Dataset should be a list of entries.")
+        for entry in dataset:
+            if not isinstance(entry, dict):
+                raise ValueError("Each entry in the dataset should be a dictionary.")
 
-    @property
-    def tokenizer(self) -> LlamaCppTokenizer:
-        return self.llama_tokenizer
+            for key, value in entry.items():
+                if not isinstance(key, str):
+                    raise ValueError("Keys in the dataset should be strings.")
+                if not isinstance(value, (str, list)):
+                    raise ValueError(
+                        f"Values in the dataset should be either str or list, but got {type(value)}"
+                    )
 
-    def load(self, file_path: str) -> Dict[str, List[Union[int, str]]]:
+                if isinstance(value, list):
+                    for item in value:
+                        if not isinstance(item, dict):
+                            raise ValueError(
+                                "Each item in the list should be a dictionary."
+                            )
+                        if "document" not in item or "label" not in item:
+                            raise ValueError(
+                                "Each item must contain 'document' and 'label' keys."
+                            )
+                        if not isinstance(item["document"], str):
+                            raise ValueError("The 'document' field must be a string.")
+                        if not isinstance(item["label"], int):
+                            raise ValueError("The 'label' field must be an integer.")
+
+    def load(self, file_path: str) -> List[Dict[str, List[Dict[str, Union[str, int]]]]]:
         with open(file_path, "r") as f:
             try:
-                return json.load(f)
-            except json.JSONDecodeError as e:
-                self.logger.error(f"Error decoding JSON file: {e}")
-                return {}
+                dataset = json.load(f)
+                self.validate(dataset)
+                return dataset
+            except (json.JSONDecodeError, ValueError) as e:
+                self.logger.error(f"Error loading dataset: {e}")
+                return []
+
+    def save(
+        self, file_path: str, dataset: List[Dict[str, Union[torch.Tensor, List]]]
+    ) -> None:
+        with open(file_path, "w") as f:
+
+            def default(obj):
+                if isinstance(obj, torch.Tensor):
+                    return obj.tolist()
+                return obj
+
+            json.dump(dataset, f, indent=2, default=default)
+        self.logger.info(f"Dataset saved to {file_path}")
 
     def tokenize_dataset(
         self,
-        dataset: Dict[str, List[Union[int, str]]],
+        dataset: List[Dict[str, Union[str, List[Dict[str, Union[str, int]]]]]],
         max_length: int = 256,
         pad_token_id: int = -1,
     ) -> List[Dict[str, Union[int, List[int]]]]:
@@ -58,10 +94,11 @@ class LlamaCppDataset:
 
             # Process related and unrelated documents
             for relation_type in ["related", "unrelated"]:
-                # Get the List of tensors for the current relation type
                 for item in entry[relation_type]:
-                    document = item["document"]
-                    label = item["label"]
+                    document = item.get("document", "")
+                    label = item.get("label")
+                    if label is None:
+                        raise ValueError("Missing label for document.")
 
                     # Tokenize document
                     document_tokens = self.tokenizer.encode(
@@ -70,14 +107,13 @@ class LlamaCppDataset:
 
                     # Concatenate query and document tokens
                     tokens = query_tokens + document_tokens
-                    # Truncate and pad the sequence (we can't know what the pad id is until runtime)
+                    # Truncate and pad the sequence
                     tokens = tokens[:max_length] + [pad_token_id] * max(
                         0, max_length - len(tokens)
                     )
 
                     # Add to tokenized data
                     tokenized_data.append({"tokens": tokens, "label": label})
-
         return tokenized_data
 
     def batch_dataset(
@@ -89,10 +125,10 @@ class LlamaCppDataset:
         for i in range(0, len(tokenized_data), batch_size):
             batch = tokenized_data[i : i + batch_size]
             tokens_batch = torch.tensor(
-                [item["tokens"] for item in batch], dtype=torch.LongTensor
+                [item["tokens"] for item in batch], dtype=torch.long
             )
             labels_batch = torch.tensor(
-                [item["label"] for item in batch], dtype=torch.LongTensor
+                [item["label"] for item in batch], dtype=torch.long
             )
 
             # Append batch as a dictionary
@@ -120,7 +156,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=None,
+        default=32,
         help="Batch size for tokenization.",
     )
     parser.add_argument(
@@ -139,25 +175,24 @@ if __name__ == "__main__":
 
     llama_api = LlamaCppAPI()
     llama_tokenizer = LlamaCppTokenizer(llama_api=llama_api)
-    llama_dataset = LlamaCppDataset(
-        llama_api=llama_api, llama_tokenizer=llama_tokenizer
-    )
-    dataset = llama_dataset.load(args.input)
+    embedding_dataset = EmbeddingDataset(llama_tokenizer=llama_tokenizer)
+    dataset = embedding_dataset.load(args.input)
 
     # Load the pad token ID from the tokenizer if provided, otherwise use -1 as a placeholder.
     if args.pad_token:
-        pad_token_id = llama_tokenizer.encode(args.pad_token)
+        pad_token_id = llama_tokenizer.encode(args.pad_token)[0]
     else:
         pad_token_id = -1
 
     # Set the maximum length for tokenization if provided, otherwise use the tokenizer's max embedding length.
-    if args.max_length is None:
-        # NOTE: Possible alternative is .max_sequence_length()
-        max_length = llama_tokenizer.max_embedding_length()
-    else:
-        max_length = args.max_length
+    max_length = args.max_length
 
-    tokenized_dataset = llama_dataset.tokenize_dataset(
+    tokenized_dataset = embedding_dataset.tokenize_dataset(
         dataset, max_length, pad_token_id
     )
-    batched_dataset = llama_dataset.batch_dataset(tokenized_dataset, args.batch_size)
+    batched_dataset = embedding_dataset.batch_dataset(
+        tokenized_dataset, args.batch_size
+    )
+    embedding_dataset.save(args.output, batched_dataset)
+
+    print("Dataset processing completed successfully.")
