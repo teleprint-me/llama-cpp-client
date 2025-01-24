@@ -1,6 +1,7 @@
 """
 Module: llama_cpp_client.model.dataset
 Description: This module provides functions to load and process datasets for an Embedding model.
+NOTE: Chunking will add a considerable amount of complexity. Only use it if you have a large dataset and need to handle it efficiently. It's not recommended for small datasets.
 """
 
 import json
@@ -11,6 +12,7 @@ import torch
 
 from llama_cpp_client.common.logger import get_logger
 from llama_cpp_client.llama.api import LlamaCppAPI
+from llama_cpp_client.llama.chunker import LlamaCppChunker
 from llama_cpp_client.llama.tokenizer import LlamaCppTokenizer
 
 
