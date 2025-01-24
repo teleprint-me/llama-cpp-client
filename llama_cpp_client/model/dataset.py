@@ -80,7 +80,7 @@ class EmbeddingDataset:
             json.dump(dataset, f, indent=2, default=default)
         self.logger.info(f"Dataset saved to {file_path}")
 
-    def tokenize_dataset(
+    def tokenize(
         self,
         dataset: List[Dict[str, Union[str, List[Dict[str, Union[str, int]]]]]],
         max_length: int = 256,
@@ -116,7 +116,7 @@ class EmbeddingDataset:
                     tokenized_data.append({"tokens": tokens, "label": label})
         return tokenized_data
 
-    def batch_dataset(
+    def batch(
         self,
         tokenized_data: List[Dict[str, Union[int, List[int]]]],
         batch_size: int = 32,
@@ -187,12 +187,8 @@ if __name__ == "__main__":
     # Set the maximum length for tokenization if provided, otherwise use the tokenizer's max embedding length.
     max_length = args.max_length
 
-    tokenized_dataset = embedding_dataset.tokenize_dataset(
-        dataset, max_length, pad_token_id
-    )
-    batched_dataset = embedding_dataset.batch_dataset(
-        tokenized_dataset, args.batch_size
-    )
+    tokenized_dataset = embedding_dataset.tokenize(dataset, max_length, pad_token_id)
+    batched_dataset = embedding_dataset.batch(tokenized_dataset, args.batch_size)
     embedding_dataset.save(args.output, batched_dataset)
 
     print("Dataset processing completed successfully.")
