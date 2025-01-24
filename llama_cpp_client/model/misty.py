@@ -130,7 +130,7 @@ def train_model(
     learning_rate: float = 0.001,
 ) -> None:
     """
-    Train the EmbeddingModel using a simple synthetic dataset.
+    Train the EmbeddingModel using a batched dataset.
 
     Args:
         model_path (str): Path to save the trained model.
@@ -151,19 +151,18 @@ def train_model(
         for batch_idx, batch in enumerate(batched_dataset):
             optimizer.zero_grad()
 
-            # Extract tokens and labels
-            tokens = batch["tokens"]  # Shape: (batch_size, seq_len)
-            labels = batch["labels"]  # Shape: (batch_size, )
+            # Extract query, document, and label
+            query_tokens = batch["query"]  # Shape: (batch_size, seq_len)
+            document_tokens = batch["document"]  # Shape: (batch_size, seq_len)
+            label = batch["label"]  # Shape: (batch_size, )
 
             # Generate embeddings
-            embeddings = embedding_model(tokens)
+            query_embeddings = embedding_model(query_tokens)
+            document_embeddings = embedding_model(document_tokens)
 
-            # Create synthetic targets for cosine embedding loss
-            # Here, positive samples (1) are assumed for simplicity
-            targets = torch.ones(labels.size(0), device=labels.device)
-
-            # Compute loss
-            loss = loss_fn(embeddings, embeddings, targets)
+            # Compute loss using CosineEmbeddingLoss
+            # Labels should be 1 for similar and -1 for dissimilar pairs
+            loss = loss_fn(query_embeddings, document_embeddings, label)
 
             # Backpropagation
             loss.backward()
@@ -188,6 +187,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-s", "--save-every", type=int, default=10, help="Save model every x epochs."
     )
+    parser.add_argument("--pad-token", type=str, default="<PAD>", help="Padding token.")
     parser.add_argument(
         "--hidden-dim",
         type=int,
@@ -263,10 +263,12 @@ if __name__ == "__main__":
     embedding_dataset = EmbeddingDataset(llama_tokenizer, args.verbose)
     dataset = embedding_dataset.load(args.dataset_path)
     pad_token_id = llama_tokenizer.encode(args.pad_token, add_special_tokens=False)[0]
-    dataset = embedding_dataset.tokenize(
-        dataset, max_length=args.max_length, pad_token_id=pad_token_id
+    tokenized_dataset = embedding_dataset.tokenize(
+        dataset, max_length=args.batch_size, pad_token_id=pad_token_id
     )
-    dataset = embedding_dataset.batch(dataset, batch_size=args.batch_size)
+    batched_dataset = embedding_dataset.batch(
+        tokenized_dataset, batch_size=args.batch_size
+    )
 
     # Initialize Misty model
     embedding_model = EmbeddingModel(llama_api=llama_api)
@@ -275,7 +277,7 @@ if __name__ == "__main__":
     train_model(
         args.model_path,
         embedding_model,
-        dataset,
+        batched_dataset,
         save_every=args.save_every,
         epochs=args.epochs,
         learning_rate=args.learning_rate,
@@ -283,11 +285,20 @@ if __name__ == "__main__":
 
     similarities = []
     for entry in dataset:
+        # Encode the query embeddings
         query = entry.get("query")
-        query_embedding = embedding_model.forward(query)
+        query_tokens = llama_tokenizer.encode(query, add_special_tokens=False)
+        query_tokens = query_tokens[: args.batch_size] + [pad_token_id] * max(
+            0, args.batch_size - len(query_tokens)
+        )
+        query_batch = [
+            torch.tensor(query_tokens, dtype=torch.long) for _ in range(args.batch_size)
+        ]
+        query_embedding = embedding_model(query_batch)
+        # Compute similarity with each document in the entry's related list
         for item in entry.get("related", []):
             document = item.get("document")
-            document_embedding = embedding_model.forward(document)
+            document_embedding = embedding_model(document)
             results = embedding_model.compute_similarity(
                 query_embedding, document_embedding
             )
