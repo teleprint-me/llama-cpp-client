@@ -17,13 +17,13 @@ from llama_cpp_client.common.args import (
     add_common_general_args,
     add_common_request_args,
 )
-from llama_cpp_client.common.json import load_json, save_json
-from llama_cpp_client.llama.api import LlamaCppAPI  # Has llama_api.tokenizer()
-from llama_cpp_client.llama.chunker import LlamaCppChunker
+from llama_cpp_client.llama.api import LlamaCppAPI
 from llama_cpp_client.llama.request import LlamaCppRequest
+from llama_cpp_client.llama.tokenizer import LlamaCppTokenizer
+from llama_cpp_client.model.dataset import EmbeddingDataset
 
 
-class MistyEmbeddingModel(nn.Module):
+class EmbeddingModel(nn.Module):
     def __init__(
         self, llama_api: LlamaCppAPI, hidden_dim: int = 128, dropout_rate: float = 0.1
     ):
@@ -61,30 +61,40 @@ class MistyEmbeddingModel(nn.Module):
         nn.init.uniform_(self.linear2.bias, -0.1, 0.1)
         nn.init.uniform_(self.projection.bias, -0.1, 0.1)
 
-    def forward(self, token_ids: list[id]) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, padding_mask: torch.Tensor = None
+    ) -> torch.Tensor:
         """
         Forward pass to generate embeddings.
+
         Args:
-            token_ids (list[int]): Tokenized input represented as a list of token IDs.
+            x (torch.Tensor): Input tensor of token IDs (batch_size, seq_len).
+            padding_mask (torch.Tensor, optional): Mask tensor of shape (batch_size, seq_len),
+                where 1 indicates valid tokens and 0 indicates padding tokens. Default is None.
+
         Returns:
             torch.Tensor: Tensor of shape (batch_size, embedding_dim).
         """
-        if len(token_ids) >= self.embedding_dim:
-            raise ValueError("Token IDs exceed the embedding dimension.")
+        # Embedding lookup
+        embeddings = self.embeddings(x)  # Shape: (batch_size, seq_len, embedding_dim)
 
-        # Convert token IDs to tensor
-        token_tensor = torch.tensor(token_ids, dtype=torch.long)
+        if padding_mask is not None:
+            # Apply padding mask by zeroing out embeddings for padding tokens
+            embeddings = embeddings * padding_mask.unsqueeze(-1)
 
-        # Learnable token embeddings (if transitioning to standalone mode)
-        embeddings = self.embeddings(token_tensor)
-
-        # Intermediate layers
+        # Pass through the first dense layer
         hidden = self.dropout(self.activation(self.linear1(embeddings)))
-        hidden = nn.LayerNorm(hidden.size()[1:])(hidden)  # Optional layer normalization
+        # Optional layer normalization for stable training
+        hidden = nn.LayerNorm(hidden.size()[1:])(hidden)
+        # Pass through the second dense layer
         hidden = self.dropout(self.activation(self.linear2(hidden)))
 
-        # Final projection and normalization
+        # Final projection to output embedding space
         output_embeddings = self.projection(hidden)
+        # Aggregate along sequence dimension (e.g., mean pooling)
+        output_embeddings = output_embeddings.mean(dim=1)
+
+        # Normalize output embeddings to unit vectors
         return F.normalize(output_embeddings, p=2, dim=1)
 
     def compute_similarity(
@@ -100,107 +110,97 @@ class MistyEmbeddingModel(nn.Module):
         Returns:
             torch.Tensor: Pairwise similarity scores of shape (num_queries, num_documents).
         """
-        # Ensure tensors are 2D by removing extra dimensions
         if query_embeddings.ndim != 2 or document_embeddings.ndim != 2:
             raise ValueError("Both queries and documents must be 2D tensors.")
 
         # Normalize embeddings for cosine similarity
-        query_norm = F.normalize(
-            query_embeddings, p=2, dim=1
-        )  # (num_queries, embedding_dim)
-        document_norm = F.normalize(
-            document_embeddings, p=2, dim=1
-        )  # (num_documents, embedding_dim)
+        query_norm = F.normalize(query_embeddings, p=2, dim=1)
+        document_norm = F.normalize(document_embeddings, p=2, dim=1)
 
         # Compute pairwise cosine similarity using matrix multiplication
-        return torch.mm(
-            query_norm, document_norm.mT
-        )  # Use .mT for proper matrix transpose
+        return torch.mm(query_norm, document_norm.mT)
 
 
-# Training Loop
 def train_model(
-    model: nn.Module,
-    training_data: list[dict[str, any]],
+    model_path: str,
+    embedding_model: nn.Module,
+    batched_dataset: list[dict[str, torch.Tensor]],
+    save_every: int = 10,
     epochs: int = 10,
     learning_rate: float = 0.001,
 ) -> None:
     """
-    Train the MistyEmbeddingModel using a simple synthetic dataset.
-
-    Args:
-        model (MistyEmbeddingModel): The embedding model to train.
-        training_data (list[dict[str, any]]): A list of training data entries.
-        epochs (int): Number of epochs to train.
-        learning_rate (float): Learning rate for the optimizer. Defaults to 0.001.
+    Train the EmbeddingModel using a simple synthetic dataset.
     """
-
-    # Optimizer and loss function
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(embedding_model.parameters(), lr=learning_rate)
     loss_fn = nn.CosineEmbeddingLoss()
 
     for epoch in range(epochs):
         model.train()
-        optimizer.zero_grad()
+        total_loss = 0
 
-        # Combine related and unrelated documents
-        queries = []
-        related_documents = []
-        unrelated_documents = []
-        for entry in training_data:
-            queries.append(entry["query"])
-            for item in entry["related"]:
-                related_documents.append(item)
-            for item in entry["unrelated"]:
-                unrelated_documents.append(item)
+        for entry in dataset:
+            query = entry.get("query", "")
+            query_ids = model.llama_api.tokenize(query)
 
-        # Combine all documents into one list
-        documents = related_documents + unrelated_documents
+            # Process related and unrelated documents
+            related_documents = [
+                model.llama_api.tokenize(doc["document"])
+                for doc in entry.get("related", [])
+            ]
+            unrelated_documents = [
+                model.llama_api.tokenize(doc["document"])
+                for doc in entry.get("unrelated", [])
+            ]
 
-        # Create labels: +1 for related, -1 for unrelated
-        labels = torch.cat(
-            [torch.ones(len(related_documents)), -torch.ones(len(unrelated_documents))]
-        )
-
-        # Generate embeddings
-        query_embeddings = model.forward(queries)  # (len(queries), embedding_dim)
-        document_embeddings = model.forward(
-            documents
-        )  # (len(documents), embedding_dim)
-
-        # Compute loss directly on embeddings
-        repeated_labels = labels.repeat(len(queries))  # Repeat labels for each query
-        expanded_query_embeddings = query_embeddings.unsqueeze(1).expand(
-            -1, len(documents), -1
-        )
-        expanded_document_embeddings = document_embeddings.unsqueeze(0).expand(
-            len(queries), -1, -1
-        )
-
-        loss = loss_fn(
-            expanded_query_embeddings.reshape(-1, model.embedding_dim),
-            expanded_document_embeddings.reshape(-1, model.embedding_dim),
-            repeated_labels,
-        )
-
-        # Backpropagation
-        loss.backward()
-        optimizer.step()
-
-        # Log loss and sample similarity scores
-        print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item():.4f}")
-        with torch.no_grad():
-            similarities = model.compute_similarity(
-                query_embeddings, document_embeddings
+            # Pad sequences and generate masks
+            padded_query_ids, query_mask = pad_sequences([query_ids], pad_token)
+            padded_related_docs, related_masks = pad_sequences(
+                related_documents, pad_token
             )
-            print(f"Sample Similarity Scores (Epoch {epoch + 1}):")
-            print(similarities[:4, :4])  # Print the first few rows and columns
+            padded_unrelated_docs, unrelated_masks = pad_sequences(
+                unrelated_documents, pad_token
+            )
+
+            # Generate query embedding
+            query_embedding = model.forward(padded_query_ids[0], query_mask[0])
+
+            # Process related and unrelated document embeddings
+            for doc_ids, mask, label_value in zip(
+                padded_related_docs + padded_unrelated_docs,
+                related_masks + unrelated_masks,
+                [1.0] * len(padded_related_docs) + [-1.0] * len(padded_unrelated_docs),
+            ):
+                document_embedding = model.forward(doc_ids, mask)
+                label = torch.tensor([label_value], dtype=torch.float)
+
+                # Compute loss
+                loss = loss_fn(query_embedding, document_embedding, label)
+                total_loss += loss.item()
+
+                # Backpropagation
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+        # Save model after each epoch
+        if (epoch + 1) % save_every == 0:
+            torch.save(model.state_dict(), f"{file_path}/model_{epoch + 1}.pth")
+            print(f"Model saved at epoch {epoch + 1}")
+
+        # Log loss
+        print(f"Epoch {epoch + 1}/{epochs}, Total Loss: {total_loss:.4f}")
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a document similarity model.")
-    parser.add_argument("-j", "--json", help="Path to the training data file.")
-    parser.add_argument("-m", "--model", help="Path to the model file.")
+    parser.add_argument(
+        "-d", "--dataset-path", help="Path to the training dataset file."
+    )
+    parser.add_argument("-m", "--model-path", help="Path to the model file.")
+    parser.add_argument(
+        "-s", "--save-every", type=int, default=10, help="Save model every x epochs."
+    )
     parser.add_argument(
         "--hidden-dim",
         type=int,
@@ -253,9 +253,6 @@ def parse_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = parse_args()
 
-    # Load training data from JSON file.
-    training_data = load_json(args.json)
-
     # Initialize core requests
     llama_request = LlamaCppRequest(args.base_url, args.port, verbose=args.verbose)
 
@@ -275,29 +272,38 @@ if __name__ == "__main__":
         verbose=args.verbose,
     )
 
-    # Initialize chunker
-    llama_chunker = LlamaCppChunker(api=llama_api, verbose=args.verbose)
+    llama_tokenizer = LlamaCppTokenizer(llama_api, args.verbose)
+    embedding_dataset = EmbeddingDataset(llama_tokenizer, args.verbose)
+    dataset = embedding_dataset.load(args.dataset_path)
+    pad_token_id = llama_tokenizer.encode(args.pad_token, add_special_tokens=False)[0]
+    dataset = embedding_dataset.tokenize(
+        dataset, max_length=args.max_length, pad_token_id=pad_token_id
+    )
+    dataset = embedding_dataset.batch(dataset, batch_size=args.batch_size)
 
     # Initialize Misty model
-    misty = MistyEmbeddingModel(llama_api=llama_api)
+    embedding_model = EmbeddingModel(llama_api=llama_api)
 
     # Train the model
     train_model(
-        misty,
-        training_data,
+        args.model_path,
+        embedding_model,
+        dataset,
+        save_every=args.save_every,
         epochs=args.epochs,
         learning_rate=args.learning_rate,
     )
 
     similarities = []
-    for entry in training_data:
+    for entry in dataset:
         query = entry.get("query")
-        query_embedding = misty.forward(query)
+        query_embedding = embedding_model.forward(query)
         for item in entry.get("related", []):
             document = item.get("document")
-            weighted_score = item.get("weighted_score")
-            document_embedding = misty.forward(document)
-            results = misty.compute_similarity(query_embedding, document_embedding)
+            document_embedding = embedding_model.forward(document)
+            results = embedding_model.compute_similarity(
+                query_embedding, document_embedding
+            )
             similarities.append(results)
 
     # Display results
