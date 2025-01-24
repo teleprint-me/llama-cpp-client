@@ -131,65 +131,52 @@ def train_model(
 ) -> None:
     """
     Train the EmbeddingModel using a simple synthetic dataset.
+
+    Args:
+        model_path (str): Path to save the trained model.
+        embedding_model (nn.Module): The embedding model to train.
+        batched_dataset (list[dict[str, torch.Tensor]]): List of batched data.
+        save_every (int): Interval for saving the model.
+        epochs (int): Number of training epochs.
+        learning_rate (float): Learning rate for the optimizer.
     """
     optimizer = torch.optim.Adam(embedding_model.parameters(), lr=learning_rate)
     loss_fn = nn.CosineEmbeddingLoss()
 
+    embedding_model.train()
+
     for epoch in range(epochs):
-        model.train()
         total_loss = 0
 
-        for entry in dataset:
-            query = entry.get("query", "")
-            query_ids = model.llama_api.tokenize(query)
+        for batch_idx, batch in enumerate(batched_dataset):
+            optimizer.zero_grad()
 
-            # Process related and unrelated documents
-            related_documents = [
-                model.llama_api.tokenize(doc["document"])
-                for doc in entry.get("related", [])
-            ]
-            unrelated_documents = [
-                model.llama_api.tokenize(doc["document"])
-                for doc in entry.get("unrelated", [])
-            ]
+            # Extract tokens and labels
+            tokens = batch["tokens"]  # Shape: (batch_size, seq_len)
+            labels = batch["labels"]  # Shape: (batch_size, )
 
-            # Pad sequences and generate masks
-            padded_query_ids, query_mask = pad_sequences([query_ids], pad_token)
-            padded_related_docs, related_masks = pad_sequences(
-                related_documents, pad_token
-            )
-            padded_unrelated_docs, unrelated_masks = pad_sequences(
-                unrelated_documents, pad_token
-            )
+            # Generate embeddings
+            embeddings = embedding_model(tokens)
 
-            # Generate query embedding
-            query_embedding = model.forward(padded_query_ids[0], query_mask[0])
+            # Create synthetic targets for cosine embedding loss
+            # Here, positive samples (1) are assumed for simplicity
+            targets = torch.ones(labels.size(0), device=labels.device)
 
-            # Process related and unrelated document embeddings
-            for doc_ids, mask, label_value in zip(
-                padded_related_docs + padded_unrelated_docs,
-                related_masks + unrelated_masks,
-                [1.0] * len(padded_related_docs) + [-1.0] * len(padded_unrelated_docs),
-            ):
-                document_embedding = model.forward(doc_ids, mask)
-                label = torch.tensor([label_value], dtype=torch.float)
+            # Compute loss
+            loss = loss_fn(embeddings, embeddings, targets)
 
-                # Compute loss
-                loss = loss_fn(query_embedding, document_embedding, label)
-                total_loss += loss.item()
+            # Backpropagation
+            loss.backward()
+            optimizer.step()
 
-                # Backpropagation
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+            total_loss += loss.item()
 
-        # Save model after each epoch
+        print(f"Epoch {epoch + 1}/{epochs}, Loss: {total_loss:.4f}")
+
+        # Save the model periodically
         if (epoch + 1) % save_every == 0:
-            torch.save(model.state_dict(), f"{file_path}/model_{epoch + 1}.pth")
-            print(f"Model saved at epoch {epoch + 1}")
-
-        # Log loss
-        print(f"Epoch {epoch + 1}/{epochs}, Total Loss: {total_loss:.4f}")
+            torch.save(embedding_model.state_dict(), model_path)
+            print(f"Model saved to {model_path}")
 
 
 def parse_args() -> argparse.Namespace:
